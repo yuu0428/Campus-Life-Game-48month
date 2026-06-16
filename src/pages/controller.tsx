@@ -27,6 +27,15 @@ const FACULTY_LABELS: Record<Faculty, string> = {
 };
 
 const FACULTY_OPTIONS = Object.entries(FACULTY_LABELS) as [Faculty, string][];
+const BRAND = {
+  ink: "#172313",
+  muted: "#596651",
+  green: "#82C045",
+  greenDeep: "#315F1F",
+  greenSoft: "#EDF8E6",
+  line: "rgba(49, 95, 31, 0.16)",
+  shadow: "0 10px 0 rgba(49, 95, 31, 0.06), 0 18px 42px rgba(23, 51, 15, 0.14)",
+};
 
 function readStoredFaculty(): Faculty {
   const storedFaculty = sessionStorage.getItem("clg_faculty");
@@ -36,20 +45,25 @@ function readStoredFaculty(): Faculty {
 // ─── Styles ──────────────────────────────────────────────────────
 const S = {
   root: {
-    background: "#fafafa",
+    background:
+      "linear-gradient(90deg, rgba(23, 51, 15, 0.04) 1px, transparent 1px), linear-gradient(180deg, rgba(23, 51, 15, 0.04) 1px, transparent 1px), #f4f8f0",
+    backgroundSize: "34px 34px",
     minHeight: "100vh",
     fontFamily:
       '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
     fontSize: 16,
-    color: "#1a1a2e",
+    color: BRAND.ink,
     touchAction: "manipulation" as const,
     overscrollBehavior: "none" as const,
+    overflowX: "hidden" as const,
   },
   header: {
-    background: "linear-gradient(135deg, #6366f1, #8b5cf6)",
-    color: "#fff",
+    background: "linear-gradient(135deg, #9cda5b, #82C045)",
+    color: "#10220d",
     padding: "40px 24px 32px",
     textAlign: "center" as const,
+    borderBottom: "1px solid rgba(49, 95, 31, 0.2)",
+    boxShadow: "0 8px 0 rgba(49, 95, 31, 0.12)",
   },
   headerTitle: {
     fontSize: 28,
@@ -58,43 +72,46 @@ const S = {
   },
   headerSub: {
     fontSize: 15,
-    opacity: 0.85,
+    color: BRAND.greenDeep,
+    fontWeight: 700,
   },
   card: {
     background: "#fff",
-    borderRadius: 16,
+    boxSizing: "border-box" as const,
+    borderRadius: 18,
     padding: "24px 20px",
     margin: "16px",
-    boxShadow: "0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.06)",
+    border: `1px solid ${BRAND.line}`,
+    boxShadow: BRAND.shadow,
   },
   cardTitle: {
     fontSize: 16,
     fontWeight: 700,
     marginBottom: 16,
-    color: "#374151",
+    color: BRAND.greenDeep,
   },
   input: {
     width: "100%",
     padding: "14px 16px",
     fontSize: 16,
-    border: "1px solid #d1d5db",
-    borderRadius: 12,
+    border: `1px solid ${BRAND.line}`,
+    borderRadius: 14,
     outline: "none",
     boxSizing: "border-box" as const,
     marginBottom: 12,
-    background: "#f9fafb",
+    background: "#fbfff7",
   },
   select: {
     width: "100%",
     padding: "14px 16px",
     fontSize: 16,
-    border: "1px solid #d1d5db",
-    borderRadius: 12,
+    border: `1px solid ${BRAND.line}`,
+    borderRadius: 14,
     outline: "none",
     boxSizing: "border-box" as const,
     marginBottom: 12,
-    background: "#f9fafb",
-    color: "#1a1a2e",
+    background: "#fbfff7",
+    color: BRAND.ink,
   },
   joinBtn: (disabled: boolean) => ({
     width: "100%",
@@ -102,12 +119,13 @@ const S = {
     fontSize: 16,
     fontWeight: 700,
     border: "none",
-    borderRadius: 12,
-    background: disabled ? "#d1d5db" : "#6366f1",
-    color: disabled ? "#9ca3af" : "#fff",
+    borderRadius: 14,
+    background: disabled ? "#d7decf" : "linear-gradient(180deg, #8fce50, #72ad38)",
+    color: disabled ? "#89927d" : "#10220d",
     cursor: disabled ? "default" : "pointer",
     touchAction: "manipulation" as const,
-    transition: "background 0.2s",
+    boxShadow: disabled ? "none" : "0 6px 0 #4f8429, 0 14px 22px rgba(49, 95, 31, 0.22)",
+    transition: "background 0.2s, transform 0.2s",
   }),
   statusBar: {
     display: "flex",
@@ -122,10 +140,10 @@ const S = {
     width: 8,
     height: 8,
     borderRadius: "50%",
-    background: connected ? "#22c55e" : "#ef4444",
+    background: connected ? BRAND.green : "#ef4444",
   }),
   statusText: {
-    color: "#6b7280",
+    color: BRAND.muted,
   },
   playerList: {
     display: "flex",
@@ -137,15 +155,15 @@ const S = {
     alignItems: "center",
     gap: 12,
     padding: "12px 16px",
-    borderRadius: 12,
-    background: "#f9fafb",
+    borderRadius: 14,
+    background: BRAND.greenSoft,
     border: `2px solid ${color}33`,
   }),
   playerDot: (color: string, online: boolean) => ({
     width: 32,
     height: 32,
     borderRadius: "50%",
-    background: online ? color : "#d1d5db",
+    background: online ? color : "#d7decf",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
@@ -161,12 +179,12 @@ const S = {
   },
   playerStatus: (online: boolean) => ({
     fontSize: 12,
-    color: online ? "#22c55e" : "#9ca3af",
+    color: online ? BRAND.greenDeep : "#89927d",
     fontWeight: 500,
   }),
   emptyState: {
     textAlign: "center" as const,
-    color: "#9ca3af",
+    color: BRAND.muted,
     fontSize: 14,
     padding: "20px 0",
   },
@@ -174,32 +192,35 @@ const S = {
     display: "inline-block",
     padding: "6px 14px",
     borderRadius: 20,
-    background: "#ede9fe",
-    color: "#6366f1",
+    background: BRAND.greenSoft,
+    color: BRAND.greenDeep,
     fontSize: 13,
     fontWeight: 600,
     marginTop: 12,
   },
   infoRow: {
     display: "flex",
-    justifyContent: "space-between",
+    flexDirection: "column" as const,
+    alignItems: "stretch",
+    gap: 12,
     fontSize: 13,
-    color: "#9ca3af",
-    padding: "6px 0",
+    color: BRAND.muted,
+    padding: "8px 0",
+    minWidth: 0,
   },
   passkeyBox: {
     marginTop: 14,
     padding: "14px 16px",
-    borderRadius: 12,
-    background: "#f3f4f6",
-    border: "1px solid #e5e7eb",
+    borderRadius: 14,
+    background: BRAND.greenSoft,
+    border: `1px solid ${BRAND.line}`,
     textAlign: "center" as const,
   },
   passkeyValue: {
     fontSize: 28,
     fontWeight: 800,
     letterSpacing: "0.18em",
-    color: "#374151",
+    color: BRAND.greenDeep,
   },
 } as const;
 
@@ -214,7 +235,9 @@ export function ControllerLobbyPage() {
     sessionStorage.getItem("clg_passkey") ?? ""
   );
   const [state, setState] = useState<GameState>(defaultGameState());
-  const [status, setStatus] = useState("未接続");
+  const [status, setStatus] = useState(
+    name ? "接続準備中" : "名前を入力してください"
+  );
   const [connected, setConnected] = useState(false);
   const [joining, setJoining] = useState(false);
   const [joined, setJoined] = useState(false);
@@ -462,12 +485,12 @@ export function ControllerLobbyPage() {
             <div style={{ fontSize: 18, fontWeight: 700, marginBottom: 4 }}>
               参加完了!
             </div>
-            <div style={{ fontSize: 14, color: "#6b7280" }}>
+            <div style={{ fontSize: 14, color: BRAND.muted }}>
               ホストがゲームを開始するまで待ってください
             </div>
             {issuedPasskey && (
               <div style={S.passkeyBox}>
-                <div style={{ fontSize: 12, color: "#6b7280", marginBottom: 4 }}>
+                <div style={{ fontSize: 12, color: BRAND.muted, marginBottom: 4 }}>
                   再接続パスキー
                 </div>
                 <div style={S.passkeyValue}>{issuedPasskey}</div>
@@ -499,7 +522,7 @@ export function ControllerLobbyPage() {
                   <div style={S.playerName}>
                     {player.name}
                     {player.id === clientId && (
-                      <span style={{ color: "#9ca3af", fontWeight: 400 }}>
+                      <span style={{ color: BRAND.muted, fontWeight: 400 }}>
                         {" "}
                         (あなた)
                       </span>
@@ -520,19 +543,19 @@ export function ControllerLobbyPage() {
         <div style={S.cardTitle}>接続情報</div>
         <div style={S.infoRow}>
           <span>ホスト</span>
-          <span style={{ color: "#374151" }}>{hostUrl}</span>
+          <span style={{ color: BRAND.greenDeep, minWidth: 0, textAlign: "right", wordBreak: "break-all" }}>{hostUrl}</span>
         </div>
         <div style={S.infoRow}>
           <span>ID</span>
-          <span style={{ color: "#374151" }}>{clientId ?? "-"}</span>
+          <span style={{ color: BRAND.greenDeep, minWidth: 0, textAlign: "right", wordBreak: "break-all" }}>{clientId ?? "-"}</span>
         </div>
         <div style={S.infoRow}>
           <span>学部</span>
-          <span style={{ color: "#374151" }}>{FACULTY_LABELS[faculty]}</span>
+          <span style={{ color: BRAND.greenDeep, minWidth: 0, textAlign: "right" }}>{FACULTY_LABELS[faculty]}</span>
         </div>
         <div style={S.infoRow}>
           <span>パスキー</span>
-          <span style={{ color: "#374151" }}>{issuedPasskey || passkey || "-"}</span>
+          <span style={{ color: BRAND.greenDeep, minWidth: 0, textAlign: "right", wordBreak: "break-all" }}>{issuedPasskey || passkey || "-"}</span>
         </div>
       </div>
     </div>

@@ -15,6 +15,7 @@
           "health": 1
         },
         "flagEffects": {
+          "housing": "family",
           "living_alone": false
         },
         "polarity": "positive"
@@ -28,6 +29,7 @@
           "action_power": 2
         },
         "flagEffects": {
+          "housing": "alone",
           "living_alone": true
         },
         "polarity": "mixed"
@@ -41,6 +43,7 @@
           "money": -1
         },
         "flagEffects": {
+          "housing": "dorm_share",
           "living_alone": false
         },
         "polarity": "positive"
@@ -233,13 +236,18 @@
       },
       {
         "id": "4B",
-        "label": "友人と過去問を共有する",
+        "label": "人脈を頼って過去問を集める",
         "effects": {
           "credits": 8,
           "connections": 2,
           "intellect": 2
         },
-        "polarity": "positive"
+        "polarity": "positive",
+        "condition": {
+          "minStats": {
+            "connections": 3
+          }
+        }
       },
       {
         "id": "4C",
@@ -280,6 +288,11 @@
       {
         "id": "6A",
         "label": "実家のまま後期の履修を厚くする",
+        "condition": {
+          "requiredFlags": {
+            "housing": "family"
+          }
+        },
         "effects": {
           "credits": 5,
           "intellect": 1,
@@ -296,6 +309,7 @@
           "action_power": 2
         },
         "flagEffects": {
+          "housing": "alone",
           "living_alone": true
         },
         "polarity": "mixed"
@@ -307,6 +321,10 @@
           "credits": 4,
           "connections": 2
         },
+        "flagEffects": {
+          "housing": "dorm_share",
+          "living_alone": false
+        },
         "polarity": "positive"
       }
     ],
@@ -314,6 +332,7 @@
       {
         "condition": {
           "requiredFlags": {
+            "housing": "alone",
             "living_alone": true
           }
         },
@@ -420,7 +439,7 @@
       },
       {
         "id": "8C",
-        "label": "最低限で済ませて余白を作る",
+        "label": "必要なことだけ終わらせて休む",
         "effects": {
           "credits": 2,
           "health": 1,
@@ -432,7 +451,7 @@
   },
   "9": {
     "id": "9",
-    "title": "冬の誘いと距離感",
+    "title": "冬の誘い",
     "description": "忘年会、クリスマス、気になる相手。近づくにも引くにも選択がいる。",
     "year": 1,
     "category": "恋愛",
@@ -446,6 +465,9 @@
           "onSuccess": {
             "romance_exp": 3,
             "connections": 1
+          },
+          "onSuccessFlags": {
+            "has_partner": true
           },
           "onFailure": {
             "romance_exp": 1,
@@ -498,13 +520,18 @@
       },
       {
         "id": "10B",
-        "label": "友人と過去問を共有する",
+        "label": "人脈を頼って過去問を集める",
         "effects": {
           "credits": 8,
           "connections": 2,
           "intellect": 2
         },
-        "polarity": "positive"
+        "polarity": "positive",
+        "condition": {
+          "minStats": {
+            "connections": 3
+          }
+        }
       },
       {
         "id": "10C",
@@ -581,12 +608,18 @@
       {
         "id": "13C",
         "label": "最後のチャンスで一人暮らしに移る",
+        "condition": {
+          "excludedFlags": {
+            "housing": "alone"
+          }
+        },
         "effects": {
           "credits": 4,
           "money": -2,
           "action_power": 2
         },
         "flagEffects": {
+          "housing": "alone",
           "living_alone": true
         },
         "polarity": "mixed"
@@ -596,6 +629,7 @@
       {
         "condition": {
           "requiredFlags": {
+            "housing": "alone",
             "living_alone": true
           }
         },
@@ -652,6 +686,9 @@
             "romance_exp": 3,
             "connections": 1,
             "health": 1
+          },
+          "onSuccessFlags": {
+            "has_partner": true
           },
           "onFailure": {
             "romance_exp": 1,
@@ -720,13 +757,18 @@
       },
       {
         "id": "16B",
-        "label": "友人と過去問を共有する",
+        "label": "人脈を頼って過去問を集める",
         "effects": {
           "credits": 9,
           "connections": 2,
           "intellect": 2
         },
-        "polarity": "positive"
+        "polarity": "positive",
+        "condition": {
+          "minStats": {
+            "connections": 3
+          }
+        }
       },
       {
         "id": "16C",
@@ -839,6 +881,9 @@
             "romance_exp": 3,
             "connections": 1
           },
+          "onSuccessFlags": {
+            "has_partner": true
+          },
           "onFailure": {
             "romance_exp": 1,
             "health": -1
@@ -891,7 +936,7 @@
       },
       {
         "id": "20C",
-        "label": "最低限で済ませて余白を作る",
+        "label": "必要なことだけ終わらせて休む",
         "effects": {
           "credits": 3,
           "health": 1,
@@ -926,6 +971,9 @@
           "onSuccess": {
             "romance_exp": 3,
             "health": 1
+          },
+          "onSuccessFlags": {
+            "has_partner": true
           },
           "onFailure": {
             "romance_exp": 1,
@@ -968,13 +1016,18 @@
       },
       {
         "id": "22B",
-        "label": "友人と過去問を共有する",
+        "label": "人脈を頼って過去問を集める",
         "effects": {
           "credits": 9,
           "connections": 2,
           "intellect": 2
         },
-        "polarity": "positive"
+        "polarity": "positive",
+        "condition": {
+          "minStats": {
+            "connections": 3
+          }
+        }
       },
       {
         "id": "22C",
@@ -1008,7 +1061,7 @@
   "24": {
     "id": "24",
     "title": "春休み自由行動",
-    "description": "3年に入る前の最後の空白。",
+    "description": "3年になる前の春休み。遊ぶか、準備するか、少し休むかを決める。",
     "year": 2,
     "category": "自由プール",
     "choices": [
@@ -1190,13 +1243,18 @@
       },
       {
         "id": "28B",
-        "label": "友人と過去問を共有する",
+        "label": "人脈を頼って過去問を集める",
         "effects": {
           "credits": 10,
           "connections": 2,
           "intellect": 2
         },
-        "polarity": "positive"
+        "polarity": "positive",
+        "condition": {
+          "minStats": {
+            "connections": 3
+          }
+        }
       },
       {
         "id": "28C",
@@ -1244,7 +1302,17 @@
         "flagEffects": {
           "career_path": "standard"
         },
-        "polarity": "positive"
+        "polarity": "positive",
+        "intentTags": [
+          "career",
+          "work"
+        ],
+        "routeTags": [
+          "job"
+        ],
+        "outcomeTags": [
+          "job.path_declared"
+        ]
       },
       {
         "id": "30B",
@@ -1257,7 +1325,19 @@
         "flagEffects": {
           "career_path": "grad_school"
         },
-        "polarity": "positive"
+        "polarity": "positive",
+        "intentTags": [
+          "study",
+          "research",
+          "career"
+        ],
+        "routeTags": [
+          "grad_school",
+          "research"
+        ],
+        "outcomeTags": [
+          "grad.path_declared"
+        ]
       },
       {
         "id": "30C",
@@ -1269,7 +1349,18 @@
         "flagEffects": {
           "career_path": "entrepreneur"
         },
-        "polarity": "mixed"
+        "polarity": "mixed",
+        "intentTags": [
+          "career",
+          "creative",
+          "adventure"
+        ],
+        "routeTags": [
+          "startup"
+        ],
+        "outcomeTags": [
+          "startup.path_declared"
+        ]
       }
     ]
   },
@@ -1340,7 +1431,7 @@
       },
       {
         "id": "32C",
-        "label": "最低限で済ませて余白を作る",
+        "label": "必要なことだけ終わらせて休む",
         "effects": {
           "credits": 3,
           "health": 1,
@@ -1353,7 +1444,7 @@
   "33": {
     "id": "33",
     "title": "年末の関係整理",
-    "description": "研究室、人間関係、恋人との距離。進路前に気持ちも整える。",
+    "description": "研究室、人間関係、就活前の予定を整理する時期。",
     "year": 3,
     "category": "学業+恋愛",
     "choices": [
@@ -1377,6 +1468,9 @@
             "connections": 1,
             "health": 1
           },
+          "onSuccessFlags": {
+            "romance_committed": true
+          },
           "onFailure": {
             "romance_exp": 1,
             "health": -1
@@ -1386,6 +1480,11 @@
         "storyTags": [
           "恋愛"
         ],
+        "condition": {
+          "requiredFlags": {
+            "has_partner": true
+          }
+        },
         "polarity": "mixed"
       },
       {
@@ -1419,13 +1518,18 @@
       },
       {
         "id": "34B",
-        "label": "友人と過去問を共有する",
+        "label": "人脈を頼って過去問を集める",
         "effects": {
           "credits": 10,
           "connections": 2,
           "intellect": 2
         },
-        "polarity": "positive"
+        "polarity": "positive",
+        "condition": {
+          "minStats": {
+            "connections": 3
+          }
+        }
       },
       {
         "id": "34C",
@@ -1510,7 +1614,17 @@
         "flagEffects": {
           "career_path": "standard"
         },
-        "polarity": "mixed"
+        "polarity": "mixed",
+        "intentTags": [
+          "career",
+          "work"
+        ],
+        "routeTags": [
+          "job"
+        ],
+        "outcomeTags": [
+          "job.prep"
+        ]
       }
     ],
     "conditionalVariants": [
@@ -1528,7 +1642,17 @@
               "connections": 2,
               "work_tolerance": 2
             },
-            "polarity": "positive"
+            "polarity": "positive",
+            "intentTags": [
+              "career",
+              "social"
+            ],
+            "routeTags": [
+              "job"
+            ],
+            "outcomeTags": [
+              "job.research"
+            ]
           },
           {
             "id": "37ST-B",
@@ -1537,7 +1661,17 @@
               "work_tolerance": 3,
               "time": -1
             },
-            "polarity": "positive"
+            "polarity": "positive",
+            "intentTags": [
+              "career",
+              "work"
+            ],
+            "routeTags": [
+              "job"
+            ],
+            "outcomeTags": [
+              "job.application"
+            ]
           },
           {
             "id": "37ST-C",
@@ -1546,7 +1680,17 @@
               "connections": 2,
               "work_tolerance": 1
             },
-            "polarity": "positive"
+            "polarity": "positive",
+            "intentTags": [
+              "career",
+              "social"
+            ],
+            "routeTags": [
+              "job"
+            ],
+            "outcomeTags": [
+              "job.support"
+            ]
           }
         ]
       },
@@ -1565,7 +1709,19 @@
               "credits": 2,
               "time": -1
             },
-            "polarity": "positive"
+            "polarity": "positive",
+            "intentTags": [
+              "study",
+              "research",
+              "career"
+            ],
+            "routeTags": [
+              "grad_school",
+              "research"
+            ],
+            "outcomeTags": [
+              "grad.prep"
+            ]
           },
           {
             "id": "37GR-B",
@@ -1575,7 +1731,19 @@
               "connections": 1,
               "credits": 2
             },
-            "polarity": "positive"
+            "polarity": "positive",
+            "intentTags": [
+              "study",
+              "research",
+              "social"
+            ],
+            "routeTags": [
+              "grad_school",
+              "research"
+            ],
+            "outcomeTags": [
+              "research.presentation"
+            ]
           },
           {
             "id": "37GR-C",
@@ -1585,7 +1753,19 @@
               "connections": 2,
               "credits": 2
             },
-            "polarity": "positive"
+            "polarity": "positive",
+            "intentTags": [
+              "study",
+              "research",
+              "social"
+            ],
+            "routeTags": [
+              "grad_school",
+              "research"
+            ],
+            "outcomeTags": [
+              "research.mentor"
+            ]
           }
         ]
       },
@@ -1604,7 +1784,17 @@
               "intellect": 1,
               "money": -1
             },
-            "polarity": "mixed"
+            "polarity": "mixed",
+            "intentTags": [
+              "career",
+              "creative"
+            ],
+            "routeTags": [
+              "startup"
+            ],
+            "outcomeTags": [
+              "startup.plan"
+            ]
           },
           {
             "id": "37EN-B",
@@ -1613,7 +1803,17 @@
               "action_power": 2,
               "connections": 2
             },
-            "polarity": "positive"
+            "polarity": "positive",
+            "intentTags": [
+              "career",
+              "social"
+            ],
+            "routeTags": [
+              "startup"
+            ],
+            "outcomeTags": [
+              "startup.team"
+            ]
           },
           {
             "id": "37EN-C",
@@ -1623,7 +1823,18 @@
               "work_tolerance": 1,
               "health": -1
             },
-            "polarity": "positive"
+            "polarity": "positive",
+            "intentTags": [
+              "career",
+              "creative",
+              "adventure"
+            ],
+            "routeTags": [
+              "startup"
+            ],
+            "outcomeTags": [
+              "startup.market_test"
+            ]
           }
         ]
       }
@@ -1646,7 +1857,17 @@
         "flagEffects": {
           "career_path": "standard"
         },
-        "polarity": "mixed"
+        "polarity": "mixed",
+        "intentTags": [
+          "career",
+          "work"
+        ],
+        "routeTags": [
+          "job"
+        ],
+        "outcomeTags": [
+          "job.prep"
+        ]
       }
     ],
     "conditionalVariants": [
@@ -1665,7 +1886,17 @@
               "connections": 1,
               "health": -1
             },
-            "polarity": "positive"
+            "polarity": "positive",
+            "intentTags": [
+              "career",
+              "work"
+            ],
+            "routeTags": [
+              "job"
+            ],
+            "outcomeTags": [
+              "job.interview"
+            ]
           },
           {
             "id": "38ST-B",
@@ -1674,7 +1905,17 @@
               "work_tolerance": 2,
               "intellect": 1
             },
-            "polarity": "positive"
+            "polarity": "positive",
+            "intentTags": [
+              "career",
+              "study"
+            ],
+            "routeTags": [
+              "job"
+            ],
+            "outcomeTags": [
+              "job.research"
+            ]
           },
           {
             "id": "38ST-C",
@@ -1683,7 +1924,17 @@
               "health": 2,
               "work_tolerance": 1
             },
-            "polarity": "positive"
+            "polarity": "positive",
+            "intentTags": [
+              "career",
+              "rest"
+            ],
+            "routeTags": [
+              "job"
+            ],
+            "outcomeTags": [
+              "job.rebuild"
+            ]
           }
         ]
       },
@@ -1705,7 +1956,19 @@
               "credits": 4,
               "intellect": 2
             },
-            "polarity": "positive"
+            "polarity": "positive",
+            "intentTags": [
+              "study",
+              "research",
+              "career"
+            ],
+            "routeTags": [
+              "grad_school",
+              "research"
+            ],
+            "outcomeTags": [
+              "grad.exam"
+            ]
           },
           {
             "id": "38GR-B",
@@ -1715,7 +1978,19 @@
               "intellect": 1,
               "connections": 1
             },
-            "polarity": "positive"
+            "polarity": "positive",
+            "intentTags": [
+              "study",
+              "research",
+              "career"
+            ],
+            "routeTags": [
+              "grad_school",
+              "research"
+            ],
+            "outcomeTags": [
+              "grad.plan"
+            ]
           }
         ]
       },
@@ -1735,9 +2010,22 @@
               "intellect": 1
             },
             "flagEffects": {
-              "career_failed": true
+              "career_failed": true,
+              "grad_exam_failed": true
             },
-            "polarity": "negative"
+            "polarity": "negative",
+            "intentTags": [
+              "career",
+              "risk",
+              "study"
+            ],
+            "routeTags": [
+              "grad_school"
+            ],
+            "outcomeTags": [
+              "grad.failed"
+            ],
+            "budgetMode": "failure"
           }
         ]
       },
@@ -1756,7 +2044,18 @@
               "work_tolerance": 2,
               "health": -1
             },
-            "polarity": "positive"
+            "polarity": "positive",
+            "intentTags": [
+              "career",
+              "work",
+              "adventure"
+            ],
+            "routeTags": [
+              "startup"
+            ],
+            "outcomeTags": [
+              "startup.customer_discovery"
+            ]
           },
           {
             "id": "38EN-B",
@@ -1766,7 +2065,18 @@
               "intellect": 1,
               "money": -1
             },
-            "polarity": "mixed"
+            "polarity": "mixed",
+            "intentTags": [
+              "career",
+              "creative",
+              "study"
+            ],
+            "routeTags": [
+              "startup"
+            ],
+            "outcomeTags": [
+              "startup.prototype"
+            ]
           },
           {
             "id": "38EN-C",
@@ -1775,7 +2085,17 @@
               "connections": 2,
               "action_power": 1
             },
-            "polarity": "positive"
+            "polarity": "positive",
+            "intentTags": [
+              "career",
+              "social"
+            ],
+            "routeTags": [
+              "startup"
+            ],
+            "outcomeTags": [
+              "startup.support"
+            ]
           }
         ]
       }
@@ -1798,7 +2118,17 @@
         "flagEffects": {
           "career_path": "standard"
         },
-        "polarity": "mixed"
+        "polarity": "mixed",
+        "intentTags": [
+          "career",
+          "work"
+        ],
+        "routeTags": [
+          "job"
+        ],
+        "outcomeTags": [
+          "career.unsettled"
+        ]
       }
     ],
     "conditionalVariants": [
@@ -1823,7 +2153,20 @@
             "randomPenaltyEffects": {
               "health": -1
             },
-            "polarity": "mixed"
+            "polarity": "mixed",
+            "intentTags": [
+              "career",
+              "work"
+            ],
+            "routeTags": [
+              "job"
+            ],
+            "outcomeTags": [
+              "job.offer"
+            ],
+            "flagEffects": {
+              "job_offer": true
+            }
           },
           {
             "id": "39ST-B",
@@ -1833,7 +2176,18 @@
               "work_tolerance": 2,
               "health": -1
             },
-            "polarity": "positive"
+            "polarity": "positive",
+            "intentTags": [
+              "career",
+              "work",
+              "rest"
+            ],
+            "routeTags": [
+              "job"
+            ],
+            "outcomeTags": [
+              "job.in_progress"
+            ]
           },
           {
             "id": "39ST-C",
@@ -1842,9 +2196,22 @@
               "health": -2
             },
             "flagEffects": {
-              "career_failed": true
+              "career_failed": true,
+              "job_hunt_failed": true
             },
-            "polarity": "negative"
+            "polarity": "negative",
+            "intentTags": [
+              "career",
+              "risk",
+              "rest"
+            ],
+            "routeTags": [
+              "job"
+            ],
+            "outcomeTags": [
+              "job.failed"
+            ],
+            "budgetMode": "failure"
           }
         ]
       },
@@ -1866,7 +2233,22 @@
               "intellect": 1,
               "connections": 1
             },
-            "polarity": "positive"
+            "polarity": "positive",
+            "intentTags": [
+              "study",
+              "research",
+              "career"
+            ],
+            "routeTags": [
+              "grad_school",
+              "research"
+            ],
+            "outcomeTags": [
+              "grad.admitted"
+            ],
+            "flagEffects": {
+              "grad_admitted": true
+            }
           },
           {
             "id": "39GR-B",
@@ -1875,7 +2257,23 @@
               "credits": 4,
               "intellect": 2
             },
-            "polarity": "positive"
+            "polarity": "positive",
+            "intentTags": [
+              "study",
+              "research",
+              "career"
+            ],
+            "routeTags": [
+              "grad_school",
+              "research"
+            ],
+            "outcomeTags": [
+              "grad.admitted",
+              "research.deepened"
+            ],
+            "flagEffects": {
+              "grad_admitted": true
+            }
           }
         ]
       },
@@ -1894,9 +2292,22 @@
               "action_power": 1
             },
             "flagEffects": {
-              "career_failed": true
+              "career_failed": true,
+              "grad_exam_failed": true
             },
-            "polarity": "negative"
+            "polarity": "negative",
+            "intentTags": [
+              "career",
+              "risk",
+              "study"
+            ],
+            "routeTags": [
+              "grad_school"
+            ],
+            "outcomeTags": [
+              "grad.failed"
+            ],
+            "budgetMode": "failure"
           }
         ]
       },
@@ -1919,7 +2330,22 @@
               "connections": 2,
               "money": 1
             },
-            "polarity": "positive"
+            "polarity": "positive",
+            "intentTags": [
+              "career",
+              "creative",
+              "social"
+            ],
+            "routeTags": [
+              "startup"
+            ],
+            "outcomeTags": [
+              "startup.traction",
+              "startup.customer"
+            ],
+            "flagEffects": {
+              "startup_traction": true
+            }
           },
           {
             "id": "39EN-B",
@@ -1929,7 +2355,18 @@
               "work_tolerance": 1,
               "intellect": 1
             },
-            "polarity": "positive"
+            "polarity": "positive",
+            "intentTags": [
+              "career",
+              "creative",
+              "work"
+            ],
+            "routeTags": [
+              "startup"
+            ],
+            "outcomeTags": [
+              "startup.in_progress"
+            ]
           }
         ]
       },
@@ -1948,9 +2385,24 @@
               "health": -1
             },
             "flagEffects": {
-              "career_failed": true
+              "career_failed": true,
+              "startup_failed": true,
+              "startup_closed": true
             },
-            "polarity": "negative"
+            "polarity": "negative",
+            "intentTags": [
+              "career",
+              "risk",
+              "creative"
+            ],
+            "routeTags": [
+              "startup"
+            ],
+            "outcomeTags": [
+              "startup.failed",
+              "startup.closed"
+            ],
+            "budgetMode": "failure"
           }
         ]
       }
@@ -2001,7 +2453,7 @@
       },
       {
         "id": "41C",
-        "label": "最低限で済ませて余白を作る",
+        "label": "必要なことだけ終わらせて休む",
         "effects": {
           "credits": 3,
           "health": 1,
@@ -2040,7 +2492,7 @@
       },
       {
         "id": "42C",
-        "label": "最低限で済ませて余白を作る",
+        "label": "必要なことだけ終わらせて休む",
         "effects": {
           "credits": 3,
           "health": 1,
@@ -2079,7 +2531,20 @@
             "has_partner": true
           }
         },
-        "polarity": "positive"
+        "polarity": "positive",
+        "intentTags": [
+          "romance",
+          "rest"
+        ],
+        "routeTags": [
+          "romance"
+        ],
+        "outcomeTags": [
+          "romance.commitment"
+        ],
+        "flagEffects": {
+          "romance_committed": true
+        }
       },
       {
         "id": "43C",
@@ -2091,7 +2556,18 @@
             "has_partner": true
           }
         },
-        "polarity": "negative"
+        "polarity": "negative",
+        "intentTags": [
+          "romance",
+          "risk"
+        ],
+        "routeTags": [
+          "romance"
+        ],
+        "outcomeTags": [
+          "romance.cheating_risk"
+        ],
+        "budgetMode": "failure"
       },
       {
         "id": "43D",
@@ -2103,6 +2579,9 @@
             "romance_exp": 3,
             "connections": 1
           },
+          "onSuccessFlags": {
+            "has_partner": true
+          },
           "onFailure": {
             "romance_exp": 1,
             "health": -1
@@ -2112,7 +2591,17 @@
         "storyTags": [
           "恋愛"
         ],
-        "polarity": "mixed"
+        "polarity": "mixed",
+        "intentTags": [
+          "romance",
+          "risk"
+        ],
+        "routeTags": [
+          "romance"
+        ],
+        "outcomeTags": [
+          "romance.confession"
+        ]
       }
     ]
   },
@@ -2145,7 +2634,7 @@
       },
       {
         "id": "44C",
-        "label": "最低限で済ませて余白を作る",
+        "label": "必要なことだけ終わらせて休む",
         "effects": {
           "credits": 4,
           "health": 1,
@@ -2212,13 +2701,18 @@
       },
       {
         "id": "46B",
-        "label": "友人と過去問を共有する",
+        "label": "人脈を頼って過去問を集める",
         "effects": {
           "credits": 10,
           "connections": 2,
           "intellect": 2
         },
-        "polarity": "positive"
+        "polarity": "positive",
+        "condition": {
+          "minStats": {
+            "connections": 3
+          }
+        }
       },
       {
         "id": "46C",
@@ -2301,7 +2795,7 @@
       },
       {
         "id": "48C",
-        "label": "静かにキャンパスを歩く",
+        "label": "最後にキャンパスを一周する",
         "effects": {
           "health": 2,
           "intellect": 1

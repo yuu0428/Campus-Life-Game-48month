@@ -66,6 +66,12 @@ export function meetsCondition(player, condition) {
       if (flags[key] !== required) return false;
     }
   }
+  if (condition.excludedFlags) {
+    const flags = { ...player.flags };
+    for (const [key, excluded] of Object.entries(condition.excludedFlags)) {
+      if (flags[key] === excluded) return false;
+    }
+  }
   if (condition.requiredAnyFlags) {
     const flags = { ...player.flags };
     const hasAny = condition.requiredAnyFlags.some((requiredFlags) => (

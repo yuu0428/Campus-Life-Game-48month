@@ -7,30 +7,39 @@
   color-scheme: light;
 
   /* surfaces */
-  --bg-primary: #f6f7fb;
+  --brand-green: #82c045;
+  --brand-green-deep: #315f1f;
+  --brand-green-ink: #17330f;
+  --brand-green-soft: #edf8e6;
+  --brand-lime: #b8e35d;
+  --brand-sun: #ffc857;
+  --brand-coral: #ff6b5f;
+  --brand-sky: #5bb7d4;
+
+  --bg-primary: #f4f8f0;
   --bg-card: #ffffff;
-  --bg-surface: rgba(0, 0, 0, 0.03);
+  --bg-surface: rgba(49, 95, 31, 0.07);
 
   /* text */
-  --text-primary: #1b1b1f;
-  --text-secondary: #5e6067;
+  --text-primary: #172313;
+  --text-secondary: #596651;
 
   /* accents */
-  --accent: #0b6e4f;
-  --accent-hover: #09573e;
-  --accent-bg: rgba(11, 110, 79, 0.10);
-  --accent-2: #f4b860;
+  --accent: var(--brand-green);
+  --accent-hover: #6faa35;
+  --accent-bg: rgba(130, 192, 69, 0.16);
+  --accent-2: var(--brand-sun);
 
   /* borders / shadows */
-  --border: #e2e4ea;
-  --shadow-sm: 0 2px 8px rgba(15, 23, 42, 0.06);
-  --shadow: 0 12px 30px rgba(15, 23, 42, 0.12);
+  --border: rgba(49, 95, 31, 0.14);
+  --shadow-sm: 0 3px 10px rgba(23, 51, 15, 0.08);
+  --shadow: 0 18px 42px rgba(23, 51, 15, 0.15);
 
   /* year colors (shared) */
-  --year-1: #00d4aa;
-  --year-2: #ffb347;
-  --year-3: #a855f7;
-  --year-4: #f43f5e;
+  --year-1: #82c045;
+  --year-2: #ffc857;
+  --year-3: #5bb7d4;
+  --year-4: #ff6b5f;
 
   /* spacing scale */
   --space-xs: 4px;
@@ -56,20 +65,20 @@
 [data-theme="dark"] {
   color-scheme: dark;
 
-  --bg-primary: #0f0f1a;
-  --bg-card: #1a1a2e;
-  --bg-surface: rgba(255, 255, 255, 0.06);
+  --bg-primary: #091307;
+  --bg-card: #10220d;
+  --bg-surface: rgba(237, 248, 230, 0.08);
 
   --text-primary: #ffffff;
-  --text-secondary: #a0a0b0;
+  --text-secondary: #bdd1b2;
 
-  --accent: #00d4aa;
-  --accent-hover: #00b893;
-  --accent-bg: rgba(0, 212, 170, 0.12);
+  --accent: #82c045;
+  --accent-hover: #9cd85a;
+  --accent-bg: rgba(130, 192, 69, 0.16);
 
-  --border: rgba(255, 255, 255, 0.10);
-  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.3);
-  --shadow: 0 12px 30px rgba(0, 0, 0, 0.5);
+  --border: rgba(184, 227, 93, 0.18);
+  --shadow-sm: 0 3px 10px rgba(0, 0, 0, 0.32);
+  --shadow: 0 18px 42px rgba(0, 0, 0, 0.5);
 }
 
 /* ─── Reset & Base ────────────────────────────────────────────────── */

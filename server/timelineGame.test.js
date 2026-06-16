@@ -46,7 +46,7 @@ test("stable academic player is described as a steady life, not only by score", 
   assert.equal(result.storyAward.id, "quietly_built_future");
   assert.match(result.summary, /卒業/);
   assert.match(result.summary, /整え/);
-  assert.match(result.summary, /^葵は静かな土台づくり型として/);
+  assert.match(result.summary, /^葵は生活を整えた堅実型として/);
 });
 
 test("free self-searching player is not treated as simple failure when credits are low", () => {
@@ -74,13 +74,13 @@ test("blank-space routes are awarded as a protected choice, not just inaction", 
   player.traits.selfhood = 17;
   player.traits.wellbeing = 18;
   player.traits.memory = 14;
-  player.storyTags.push("休む", "空白の夏", "余白", "一人時間");
+  player.storyTags.push("休む", "予定少なめ", "休む時間", "一人時間");
 
   const [result] = generateTimelineResults([player]);
 
   assert.equal(result.lifeArchetype.id, "self_searcher");
   assert.equal(result.storyAward.id, "protected_blank_space");
-  assert.match(result.summary, /空白/);
+  assert.match(result.summary, /休む時間/);
 });
 
 test("nonlinear routes can become their own beautiful story award", () => {

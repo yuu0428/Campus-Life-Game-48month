@@ -10,7 +10,6 @@ import {
   RadarChart,
   ResponsiveContainer,
 } from "recharts";
-import { MountainBoard, type CameraMode } from "../components/MountainBoard";
 import "../index.css";
 import "../App.css";
 import { useGameSfx } from "../hooks/useGameSfx";
@@ -18,10 +17,7 @@ import {
   colorForPlayer,
   EXPERIENCE_KEYS,
   EXPERIENCE_LABELS,
-  EXPERIENCE_RANGES,
   getRoundInfo,
-  RESOURCE_KEYS,
-  RESOURCE_LABELS,
   type ClientMessage,
   type EventChoice,
   type GameEvent,
@@ -32,6 +28,7 @@ import {
   type PlayerResult,
   type RoundInfo,
   type ServerMessage,
+  type Season,
   type StatEffects,
   defaultGameState,
   wsUrlFromInput,
@@ -81,15 +78,15 @@ function effectBadges(effects: StatEffects) {
 
 const RISK_LABELS: Record<NonNullable<EventChoice["preview"]>["risk"], string> = {
   low: "低リスク",
-  medium: "揺れる",
-  high: "荒れる",
-  unknown: "読めない",
+  medium: "中リスク",
+  high: "高リスク",
+  unknown: "不明",
 };
 
 const LIFE_TRAIT_LABELS: Record<string, string> = {
   academic: "学び",
   stability: "生活",
-  wellbeing: "余白",
+  wellbeing: "休み",
   relationships: "関係",
   freedom: "自由",
   challenge: "挑戦",
@@ -117,12 +114,12 @@ function choicePreviewBadges(choice: EventChoice) {
       )}
       {choice.preview?.gain.slice(0, 2).map((gain) => (
         <span key={`gain-${gain}`} className="event-choice__preview-chip event-choice__preview-chip--gain">
-          + {gain}
+          伸びる {gain}
         </span>
       ))}
       {choice.preview?.cost.slice(0, 2).map((cost) => (
         <span key={`cost-${cost}`} className="event-choice__preview-chip event-choice__preview-chip--cost">
-          - {cost}
+          使う {cost}
         </span>
       ))}
       {choice.preview && (
@@ -157,35 +154,272 @@ function initials(name: string) {
   return name.trim().slice(0, 2).toUpperCase() || "?";
 }
 
-const SCORE_BREAKDOWN_LABELS = {
-  experience: "経験",
-  health: "体力",
-  money: "お金",
-  credits: "単位",
-  total: "合計",
-} as const;
-
 function resultTitle(result: PlayerResult) {
   return result.academicStatus
     ? result.storyAward?.title
     : result.ending?.title;
 }
 
-function resultDescription(result: PlayerResult) {
-  return result.summary ?? result.ending?.description;
+function buildSingleResultRadarData(result: PlayerResult) {
+  return EXPERIENCE_KEYS.map((key) => ({
+    stat: EXPERIENCE_LABELS[key],
+    value: result.experience?.[key] ?? 0,
+  }));
 }
 
-function buildExperienceRadarData(results: PlayerResult[]) {
-  return EXPERIENCE_KEYS.map((key) => {
-    const row: Record<string, string | number> = {
-      stat: EXPERIENCE_LABELS[key],
-      max: EXPERIENCE_RANGES[key].max,
-    };
-    for (const result of results) {
-      row[result.playerId] = result.experience?.[key] ?? 0;
-    }
-    return row;
-  });
+type ResultRankingId = "money" | "romance" | "credits";
+
+type ResultRankingConfig = {
+  id: ResultRankingId;
+  title: string;
+  caption: string;
+  unit: string;
+  className: string;
+  value: (result: PlayerResult) => number;
+};
+
+type RankedResult = {
+  result: PlayerResult;
+  value: number;
+  rank: number;
+};
+
+type DisplayGameResults = {
+  startedAt: number | null;
+  results: PlayerResult[];
+};
+
+const RESULT_RANKINGS: ResultRankingConfig[] = [
+  {
+    id: "money",
+    title: "所持金",
+    caption: "卒業時に財布が厚かった人",
+    unit: "",
+    className: "result-leaderboard-card--money",
+    value: (result) => result.resources?.money ?? 0,
+  },
+  {
+    id: "romance",
+    title: "恋愛力",
+    caption: "恋愛経験を重ねた人",
+    unit: "",
+    className: "result-leaderboard-card--romance",
+    value: (result) => result.experience?.romance_exp ?? 0,
+  },
+  {
+    id: "credits",
+    title: "単位",
+    caption: "学び切った人",
+    unit: "単位",
+    className: "result-leaderboard-card--credits",
+    value: (result) => result.resources?.credits ?? 0,
+  },
+];
+
+function rankResults(results: PlayerResult[], config: ResultRankingConfig): RankedResult[] {
+  return [...results]
+    .sort((a, b) => {
+      const valueDelta = config.value(b) - config.value(a);
+      if (valueDelta !== 0) return valueDelta;
+      return a.playerName.localeCompare(b.playerName, "ja");
+    })
+    .map((result, index) => ({
+      result,
+      value: config.value(result),
+      rank: index + 1,
+    }));
+}
+
+function formatRankingValue(value: number, unit: string) {
+  const rounded = Number.isInteger(value) ? String(value) : value.toFixed(1);
+  return unit ? `${rounded}${unit}` : rounded;
+}
+
+function romanceStatusBadges(result: PlayerResult) {
+  const badges: { label: string; tone?: "warning" }[] = [];
+  const exPartnerCount = result.flags.ex_partner_count ?? 0;
+  if (result.flags.has_partner) badges.push({ label: "今恋人あり" });
+  if (result.flags.cheating) badges.push({ label: "浮気進行中", tone: "warning" });
+  if (result.flags.cheated_before && !result.flags.cheating) {
+    badges.push({ label: "過去に浮気", tone: "warning" });
+  }
+  if (result.flags.romance_restarted) badges.push({ label: "再スタート" });
+  if (exPartnerCount > 0) badges.push({ label: `元恋人 ${exPartnerCount}人` });
+  if (result.flags.breakup && !result.flags.has_partner) badges.push({ label: "別れた経験" });
+  return badges;
+}
+
+function ResultRankingPlayer({ config, result }: { config: ResultRankingConfig; result: PlayerResult }) {
+  const badges = config.id === "romance" ? romanceStatusBadges(result) : [];
+
+  return (
+    <div className="result-ranking-player">
+      <span className="result-ranking-player__name">{result.playerName}</span>
+      {badges.length > 0 && (
+        <span className="result-ranking-badges" aria-label={`${result.playerName}の恋愛状態`}>
+          {badges.map((badge) => (
+            <span
+              key={badge.label}
+              className={`result-ranking-badge ${
+                badge.tone === "warning" ? "result-ranking-badge--warning" : ""
+              }`}
+            >
+              {badge.label}
+            </span>
+          ))}
+        </span>
+      )}
+    </div>
+  );
+}
+
+function ResultRankingValue({ config, entry }: { config: ResultRankingConfig; entry: RankedResult }) {
+  const showCreditRosette = config.id === "credits" && entry.value >= 124;
+
+  return (
+    <em className="result-ranking-value">
+      {showCreditRosette && (
+        <img
+          className="result-credit-rosette"
+          src="/badges/credit-rosette.png"
+          alt=""
+          aria-hidden="true"
+        />
+      )}
+      <span>{formatRankingValue(entry.value, config.unit)}</span>
+    </em>
+  );
+}
+
+function ResultMiniRadar({ result, color }: { result: PlayerResult; color: string }) {
+  return (
+    <div className="result-id-card__radar" aria-hidden="true">
+      <ResponsiveContainer width="100%" height="100%">
+        <RadarChart data={buildSingleResultRadarData(result)} cx="50%" cy="50%" outerRadius="72%">
+          <PolarGrid stroke="rgba(22, 31, 46, 0.2)" />
+          <PolarAngleAxis
+            dataKey="stat"
+            tick={{ fill: "rgba(22, 31, 46, 0.7)", fontSize: 9 }}
+          />
+          <PolarRadiusAxis domain={[0, 10]} tick={false} axisLine={false} />
+          <Radar
+            dataKey="value"
+            stroke={color}
+            fill={color}
+            fillOpacity={0.24}
+            strokeWidth={2}
+          />
+        </RadarChart>
+      </ResponsiveContainer>
+    </div>
+  );
+}
+
+function ResultLeaderboardCard({
+  config,
+  rankedResults,
+  onOpen,
+}: {
+  config: ResultRankingConfig;
+  rankedResults: RankedResult[];
+  onOpen: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      className={`result-leaderboard-card ${config.className}`}
+      onClick={onOpen}
+      aria-label={`${config.title}ランキングを全画面で見る`}
+    >
+      <div className="result-leaderboard-card__header">
+        <div>
+          <div className="result-leaderboard-card__label">Top 3</div>
+          <h2>{config.title}</h2>
+        </div>
+        <span>全員を見る</span>
+      </div>
+      <p>{config.caption}</p>
+      <ol className="result-leaderboard-card__list">
+        {rankedResults.slice(0, 3).map((entry) => (
+          <li key={entry.result.playerId}>
+            <strong>{entry.rank}</strong>
+            <ResultRankingPlayer config={config} result={entry.result} />
+            <ResultRankingValue config={config} entry={entry} />
+          </li>
+        ))}
+      </ol>
+    </button>
+  );
+}
+
+function ResultRankingOverlay({
+  config,
+  rankedResults,
+  onClose,
+}: {
+  config: ResultRankingConfig;
+  rankedResults: RankedResult[];
+  onClose: () => void;
+}) {
+  return (
+    <div className="result-ranking-overlay" role="dialog" aria-modal="true" onClick={onClose}>
+      <section
+        className={`result-ranking-board ${config.className}`}
+        onClick={(event) => event.stopPropagation()}
+      >
+        <button type="button" className="result-ranking-board__close" onClick={onClose}>
+          閉じる
+        </button>
+        <div className="result-ranking-board__header">
+          <div className="result-ranking-board__label">Full ranking</div>
+          <h2>{config.title}ランキング</h2>
+          <p>{config.caption}</p>
+        </div>
+        <ol className="result-ranking-board__list">
+          {rankedResults.map((entry) => (
+            <li key={entry.result.playerId}>
+              <strong>{entry.rank}</strong>
+              <ResultRankingPlayer config={config} result={entry.result} />
+              <ResultRankingValue config={config} entry={entry} />
+            </li>
+          ))}
+        </ol>
+      </section>
+    </div>
+  );
+}
+
+function ResultMarqueeCard({ result, index }: { result: PlayerResult; index: number }) {
+  const color = colorForPlayer(index);
+  return (
+    <article
+      className="result-id-card"
+      style={{ "--player-color": color } as CSSProperties}
+    >
+      <div className="result-id-card__top">
+        <div>
+          <div className="result-id-card__kicker">Campus ID</div>
+          <h3>{result.playerName}</h3>
+        </div>
+        <span>{result.academicStatus?.title ?? result.ending?.title ?? "完走"}</span>
+      </div>
+      <div className="result-id-card__title">
+        {resultTitle(result) ?? "4年間の記録"}
+      </div>
+      <div className="result-id-card__outcomes">
+        <span>到達 {result.academicOutcome?.title ?? result.academicStatus?.title ?? "完走"}</span>
+        <span>進路 {result.careerOutcome?.title ?? "進路保留"}</span>
+        <span>恋愛 {result.relationshipOutcome?.title ?? "恋愛はこれから"}</span>
+      </div>
+      <ResultMiniRadar result={result} color={color} />
+      <div className="result-id-card__assets">
+        <span>時間 {result.resources?.time ?? 0}</span>
+        <span>お金 {result.resources?.money ?? 0}</span>
+        <span>単位 {result.resources?.credits ?? 0}</span>
+        <span>体力 {result.resources?.health ?? 0}</span>
+      </div>
+    </article>
+  );
 }
 
 const TONE_SHORT_LABELS: Record<string, string> = {
@@ -196,6 +430,472 @@ const TONE_SHORT_LABELS: Record<string, string> = {
   回復: "REST",
   現実: "WORK",
 };
+
+const BOARD_MONTH_COUNT = 48;
+const ACADEMIC_MONTH_NUMBERS = [4, 5, 6, 7, 8, 9, 10, 11, 12, 1, 2, 3];
+type DisplayPlayer = GameState["players"][number];
+type ActiveChoicePanel = {
+  player: DisplayPlayer;
+  event: GameEvent | null;
+  availableChoiceIds: string[];
+  selectedChoiceId?: string;
+};
+
+const MONTH_SEASON_META: Record<Season, { label: string; cue: string; mark: string }> = {
+  spring: { label: "春", cue: "履修・新歓", mark: "SPR" },
+  summer: { label: "夏", cue: "試験・夏休み", mark: "SUM" },
+  autumn: { label: "秋", cue: "学祭・後期", mark: "AUT" },
+  winter: { label: "冬", cue: "進級・締切", mark: "WIN" },
+};
+
+const YEAR_STAGE_LABELS: Record<number, string> = {
+  1: "入学と探索",
+  2: "広がる生活",
+  3: "専門と挑戦",
+  4: "進路と卒業",
+};
+
+function monthNumberForRound(round: number) {
+  return ACADEMIC_MONTH_NUMBERS[(round - 1) % ACADEMIC_MONTH_NUMBERS.length];
+}
+
+function monthFromPosition(position: string) {
+  const match = position.match(/^\d+/);
+  if (!match) return 1;
+  const value = Number(match[0]);
+  if (!Number.isFinite(value)) return 1;
+  return Math.max(1, Math.min(BOARD_MONTH_COUNT, value));
+}
+
+function turnGroupName(players: DisplayPlayer[]) {
+  if (players.length === 0) return "全員待機";
+  if (players.length >= 3) return `全員（${players.map((player) => player.name).join(" / ")}）`;
+  return players.map((player) => player.name).join(" と ");
+}
+
+function phaseLabel(phase: GameState["phase"]) {
+  const labels: Record<GameState["phase"], string> = {
+    lobby: "待機中",
+    rolling: "月イベント待ち",
+    choosing: "選択中",
+    animating: "結果発表",
+    revealed: "選択公開中", // master simultaneous mode
+    year_recap: "年末報告",
+    result: "結果",
+  };
+  return labels[phase];
+}
+
+function submissionLabel(submittedBy?: ChoiceResult["submittedBy"]) {
+  if (submittedBy === "display") return "ディスプレイ代行";
+  if (submittedBy === "host") return "ホスト代行";
+  return "本人選択";
+}
+
+function TurnGroupResultPanel({ results }: { results: ChoiceResult[] }) {
+  if (results.length === 0) return null;
+
+  return (
+    <div className="turn-result-comparison">
+      <div className="turn-result-comparison__title">
+        {results.length > 1 ? "ふたりの選択" : "選択結果"}
+      </div>
+      <div className="turn-result-comparison__grid">
+        {results.map((result) => (
+          <div key={`${result.playerId}-${result.choiceId}`} className="turn-result-card">
+            <div className="turn-result-card__player">{result.playerName}</div>
+            <div className="turn-result-card__choice">{result.choiceLabel}</div>
+            <div className="turn-result-card__meta">
+              {result.tone && <span>{result.tone}</span>}
+              <span>{submissionLabel(result.submittedBy)}</span>
+              {result.storyTags?.slice(0, 2).map((tag) => (
+                <span key={`${result.playerId}-${tag}`}>{tag}</span>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function DisplayFallbackChoicePanel({
+  panel,
+  index,
+  onSelect,
+}: {
+  panel: ActiveChoicePanel;
+  index: number;
+  onSelect: (playerId: string, choiceId: string) => void;
+}) {
+  const { player, event, availableChoiceIds, selectedChoiceId } = panel;
+  const selectedChoice = event?.choices.find((choice) => choice.id === selectedChoiceId);
+
+  return (
+    <section className="display-fallback-player" style={{ "--player-color": colorForPlayer(index) } as CSSProperties}>
+      <div className="display-fallback-player__header">
+        <span className="display-fallback-player__avatar">{initials(player.name)}</span>
+        <div>
+          <div className="display-fallback-player__name">{player.name}</div>
+          <div className="display-fallback-player__state">
+            {selectedChoice ? `選択済み: ${selectedChoice.label}` : "ディスプレイから代行選択できます"}
+          </div>
+        </div>
+      </div>
+
+      {event ? (
+        <>
+          <div className="display-fallback-player__event">{event.title}</div>
+          <div className="display-fallback-choice-list">
+            {event.choices.map((choice, choiceIndex) => {
+              const isAvailable = availableChoiceIds.includes(choice.id);
+              const isSelected = selectedChoiceId === choice.id;
+              const keyLabel = String.fromCharCode(65 + choiceIndex);
+              return (
+                <button
+                  key={choice.id}
+                  className={[
+                    "display-fallback-choice",
+                    isAvailable ? "display-fallback-choice--available" : "display-fallback-choice--unavailable",
+                    isSelected ? "display-fallback-choice--selected" : "",
+                  ].filter(Boolean).join(" ")}
+                  disabled={!isAvailable || Boolean(selectedChoiceId)}
+                  onClick={() => onSelect(player.id, choice.id)}
+                >
+                  <span className="display-fallback-choice__key">{keyLabel}</span>
+                  <span className="display-fallback-choice__body">
+                    <span className="display-fallback-choice__label">{choice.label}</span>
+                    {choice.description && (
+                      <span className="display-fallback-choice__desc">{choice.description}</span>
+                    )}
+                    {choicePreviewBadges(choice)}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </>
+      ) : (
+        <div className="display-fallback-player__empty">
+          このプレイヤーのイベント待ちです。
+        </div>
+      )}
+    </section>
+  );
+}
+
+function YearRecapStage({
+  state,
+  recap,
+}: {
+  state: GameState;
+  recap: NonNullable<GameState["yearRecap"]>;
+}) {
+  const playerIndexById = new Map(state.players.map((player, index) => [player.id, index]));
+
+  return (
+    <section className="year-recap-stage">
+      <div className="year-recap-stage__bg" aria-hidden="true">
+        <span>YEAR {recap.year}</span>
+        <span>CHECKPOINT</span>
+      </div>
+      <header className="year-recap-stage__header">
+        <div>
+          <div className="year-recap-stage__eyebrow">School Year Recap</div>
+          <h1>{recap.title}</h1>
+          <p>
+            {recap.year}年目終了。ここまでの単位、生活の強み、少し危ないサインを全員で見ます。
+          </p>
+        </div>
+        <div className="year-recap-stage__meter">
+          <strong>{recap.players.length}人</strong>
+          <span>今の状態を確認中</span>
+        </div>
+      </header>
+
+      <div className="year-recap-grid">
+        {recap.players.map((player) => {
+          const playerIndex = playerIndexById.get(player.playerId) ?? 0;
+          return (
+            <article
+              key={player.playerId}
+              className="year-recap-card"
+              style={{ "--player-color": colorForPlayer(playerIndex) } as CSSProperties}
+            >
+              <div className="year-recap-card__top">
+                <span className="year-recap-card__avatar">{initials(player.playerName)}</span>
+                <div>
+                  <h2>{player.playerName}</h2>
+                  <div className="year-recap-card__outlook">{player.graduationOutlook}</div>
+                </div>
+              </div>
+
+              <div className="year-recap-card__credits">
+                <span>{player.credits}単位</span>
+                <strong>{player.creditStatus}</strong>
+              </div>
+
+              <div className="year-recap-card__stats">
+                <span>時間 {player.resources.time}</span>
+                <span>お金 {player.resources.money}</span>
+                <span>体力 {player.resources.health}</span>
+                <span>知性 {player.experience.intellect}</span>
+                <span>人脈 {player.experience.connections}</span>
+              </div>
+
+              <div className="year-recap-card__tags">
+                {(player.strengths.length > 0 ? player.strengths : ["まだ方向を探している"]).slice(0, 3).map((strength) => (
+                  <span key={`strength-${player.playerId}-${strength}`}>{strength}</span>
+                ))}
+              </div>
+
+              <div className="year-recap-card__warnings">
+                {(player.warningSigns.length > 0 ? player.warningSigns : ["大きな警告なし"]).slice(0, 2).map((warning) => (
+                  <span key={`warning-${player.playerId}-${warning}`}>{warning}</span>
+                ))}
+              </div>
+            </article>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
+function MonthArchiveStage({
+  state,
+  currentPlayerId,
+}: {
+  state: GameState;
+  currentPlayerId?: string;
+}) {
+  const currentMonth = Math.max(1, Math.min(BOARD_MONTH_COUNT, state.currentRound));
+  const progressPercent = Math.round(((currentMonth - 1) / (BOARD_MONTH_COUNT - 1)) * 100);
+  const playersByMonth = new Map<number, { id: string; name: string; index: number; active: boolean }[]>();
+
+  state.players.forEach((player, index) => {
+    const month = monthFromPosition(player.position);
+    const owners = playersByMonth.get(month) ?? [];
+    owners.push({
+      id: player.id,
+      name: player.name,
+      index,
+      active: player.id === currentPlayerId,
+    });
+    playersByMonth.set(month, owners);
+  });
+
+  const monthRows = [1, 2, 3, 4].map((year) =>
+    Array.from({ length: 12 }, (_, monthIndex) => getRoundInfo((year - 1) * 12 + monthIndex + 1)),
+  );
+
+  return (
+    <div className="month-calendar-stage">
+      <div className="month-calendar-stage__skyline" aria-hidden="true">
+        <span>LIB</span>
+        <span>CAFE</span>
+        <span>LAB</span>
+        <span>CLUB</span>
+      </div>
+
+      <div className="month-calendar-stage__header">
+        <div>
+          <div className="month-calendar-stage__eyebrow">Campus Calendar</div>
+          <div className="month-calendar-stage__title">
+            48か月のキャンパスを進む
+          </div>
+          <div className="month-calendar-stage__event">
+            {state.currentEvent?.title ?? "全員の準備が終わると、1か月目のイベントが始まります"}
+          </div>
+        </div>
+        <div className="month-calendar-stage__meter">
+          <strong>Month {currentMonth}/48</strong>
+          <span>{getRoundInfo(currentMonth).label}</span>
+          <div className="month-calendar-stage__progress">
+            <i style={{ width: `${progressPercent}%` }} />
+          </div>
+        </div>
+      </div>
+
+      <div className="month-calendar-board" style={{ "--current-year-color": yearColor(getRoundInfo(currentMonth).year) } as CSSProperties}>
+        {monthRows.map((months) => {
+          const year = months[0]?.year ?? 1;
+          return (
+            <section
+              key={year}
+              className={[
+                "month-calendar-year",
+                currentMonth >= months[0].round && currentMonth <= months[months.length - 1].round
+                  ? "month-calendar-year--current"
+                  : "",
+              ].filter(Boolean).join(" ")}
+              style={{ "--year-color": yearColor(year) } as CSSProperties}
+            >
+              <div className="month-calendar-year__label">
+                <span>{year}年</span>
+                <small>{YEAR_STAGE_LABELS[year]}</small>
+              </div>
+              <div className="month-calendar-year__months">
+                {months.map((monthInfo) => {
+                  const seasonMeta = MONTH_SEASON_META[monthInfo.season];
+                  const owners = playersByMonth.get(monthInfo.round) ?? [];
+                  const isCurrent = monthInfo.round === currentMonth;
+                  const isPast = monthInfo.round < currentMonth;
+                  const isCheckpoint = monthInfo.round % 12 === 0;
+                  return (
+                    <div
+                      key={monthInfo.round}
+                      className={[
+                        "month-tile",
+                        `month-tile--${monthInfo.season}`,
+                        isCurrent ? "month-tile--current" : "",
+                        isPast ? "month-tile--past" : "",
+                        isCheckpoint ? "month-tile--checkpoint" : "",
+                        owners.length > 0 ? "month-tile--occupied" : "",
+                      ].filter(Boolean).join(" ")}
+                    >
+                      <div className="month-tile__number">
+                        {String(monthInfo.round).padStart(2, "0")}
+                      </div>
+                      <div className="month-tile__main">
+                        {monthNumberForRound(monthInfo.round)}月
+                      </div>
+                      <div className="month-tile__season">
+                        <span>{seasonMeta.mark}</span>
+                        {seasonMeta.label}
+                      </div>
+                      <div className="month-tile__cue">{seasonMeta.cue}</div>
+                      {owners.length > 0 && (
+                        <div className="month-tile__tokens">
+                          {owners.slice(0, 5).map((owner) => (
+                            <span
+                              key={owner.id}
+                              className={`month-tile__token ${owner.active ? "month-tile__token--active" : ""}`}
+                              style={{ background: colorForPlayer(owner.index) }}
+                              title={owner.name}
+                            >
+                              {initials(owner.name)}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </section>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function FocusedMonthStage({
+  state,
+  currentPlayerId,
+  activeTurnPlayers,
+  pendingChoiceCount,
+  lastTurnGroupResults,
+  onOpenArchive,
+}: {
+  state: GameState;
+  currentPlayerId?: string;
+  activeTurnPlayers: DisplayPlayer[];
+  pendingChoiceCount: number;
+  lastTurnGroupResults: ChoiceResult[];
+  onOpenArchive: () => void;
+}) {
+  const currentMonth = Math.max(1, Math.min(BOARD_MONTH_COUNT, state.currentRound));
+  const roundInfo = getRoundInfo(currentMonth);
+  const seasonMeta = MONTH_SEASON_META[roundInfo.season];
+  const currentPlayer = state.players.find((player) => player.id === currentPlayerId);
+  const groupLabel = turnGroupName(activeTurnPlayers.length > 0 ? activeTurnPlayers : currentPlayer ? [currentPlayer] : []);
+  const progressPercent = Math.round(((currentMonth - 1) / (BOARD_MONTH_COUNT - 1)) * 100);
+  const nextMonths = [1, 2, 3]
+    .map((offset) => currentMonth + offset)
+    .filter((month) => month <= BOARD_MONTH_COUNT);
+  const previousMonth = currentMonth > 1 ? currentMonth - 1 : null;
+
+  return (
+    <div className="focused-month-stage" style={{ "--season-color": yearColor(roundInfo.year) } as CSSProperties}>
+      <div className="focused-month-stage__ambient" aria-hidden="true">
+        <span>1年</span>
+        <span>2年</span>
+        <span>3年</span>
+        <span>4年</span>
+      </div>
+
+      <div className="focused-month-stage__path" aria-hidden="true">
+        {previousMonth && (
+          <div className="focused-path-panel focused-path-panel--past">
+            <span>{previousMonth}</span>
+          </div>
+        )}
+        <div className="focused-path-panel focused-path-panel--current">
+          <span>{currentMonth}</span>
+        </div>
+        {nextMonths.map((month, index) => (
+          <div
+            key={month}
+            className="focused-path-panel focused-path-panel--future"
+            style={{ left: `${52 + index * 17}%` }}
+          >
+            <span>?</span>
+          </div>
+        ))}
+      </div>
+
+      <section className="focused-event-card">
+        <div className="focused-event-card__meta">
+          <span>Month {currentMonth}/48</span>
+          <span>{roundInfo.label}</span>
+          <span>{seasonMeta.label} / {seasonMeta.cue}</span>
+        </div>
+        <h2>
+          {state.currentEvent?.title ?? `${monthNumberForRound(currentMonth)}月のイベント`}
+        </h2>
+        <p>
+          {state.currentEvent?.description ??
+            (state.phase === "lobby"
+              ? "最初のイベントは、参加者の準備が終わるまで伏せられています。"
+              : "次のイベントを表示します。")}
+        </p>
+        <div className="focused-event-card__chips">
+          <span>{phaseLabel(state.phase)}</span>
+          <span>{activeTurnPlayers.length > 1 ? `${groupLabel} のターン` : currentPlayer ? `${currentPlayer.name} の番` : "全員待機"}</span>
+          {state.phase === "choosing" && activeTurnPlayers.length > 0 && (
+            <span>{pendingChoiceCount}/{activeTurnPlayers.length} 選択済み</span>
+          )}
+          <span>{state.players.length}人参加</span>
+        </div>
+        <TurnGroupResultPanel results={lastTurnGroupResults} />
+      </section>
+
+      <aside className="focused-month-panel">
+        <div className="focused-month-panel__title">4年間の道のり</div>
+        <div className="focused-month-panel__rail">
+          {[1, 2, 3, 4].map((year) => (
+            <span
+              key={year}
+              className={year === roundInfo.year ? "focused-month-panel__year focused-month-panel__year--active" : "focused-month-panel__year"}
+              style={{ "--year-color": yearColor(year) } as CSSProperties}
+            >
+              {year}
+            </span>
+          ))}
+          <i style={{ height: `${progressPercent}%` }} />
+        </div>
+        <div className="focused-month-panel__hint">
+          この先のイベントは、進むまで表示されません。
+        </div>
+        <button className="focused-month-panel__archive" onClick={onOpenArchive}>
+          48か月一覧
+        </button>
+      </aside>
+    </div>
+  );
+}
 
 function LifeMapStage({ state }: { state: GameState }) {
   const squares = state.lifeMapSquares ?? [];
@@ -413,19 +1113,16 @@ export function DisplayPage() {
   const [eventAvailableIds, setEventAvailableIds] = useState<string[]>([]);
   const [choiceResult, setChoiceResult] = useState<ChoiceResult | null>(null);
   const [eventFading, setEventFading] = useState(false);
-
-  // Dice roll overlay
-  const [diceRoll, setDiceRoll] = useState<{ name: string; value: number; squares: number } | null>(null);
+  const [allChoicesRevealed, setAllChoicesRevealed] = useState<ChoiceResult[] | null>(null);
 
   // Round-end banner
   const [roundEndInfo, setRoundEndInfo] = useState<RoundInfo | null>(null);
 
   // Game result
-  const [gameResults, setGameResults] = useState<PlayerResult[] | null>(null);
+  const [gameResults, setGameResults] = useState<DisplayGameResults | null>(null);
   const [showResultContent, setShowResultContent] = useState(false);
-
-  // Camera mode (auto with manual override)
-  const [cameraOverride, setCameraOverride] = useState<CameraMode | null>(null);
+  const [showMonthArchive, setShowMonthArchive] = useState(false);
+  const [expandedRankingId, setExpandedRankingId] = useState<ResultRankingId | null>(null);
 
   const wsRef = useRef<WebSocket | null>(null);
   const stateRef = useRef<GameState>(state);
@@ -442,39 +1139,106 @@ export function DisplayPage() {
   );
   const statusLabel = targetUrl ? status : "接続先URLが不正です";
 
+  const displayGameStarted =
+    state.mode !== "board" ||
+    (state.startedAt !== null && state.displayStartedAt === state.startedAt);
+
+  useEffect(() => {
+    if (!expandedRankingId) return;
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setExpandedRankingId(null);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [expandedRankingId]);
+
   // Current player info
   const currentPlayer = useMemo(() => {
     if (state.players.length === 0) return undefined;
     const currentId = state.turnOrder[state.turnIndex % state.turnOrder.length];
     return state.players.find((p) => p.id === currentId);
   }, [state.players, state.turnIndex, state.turnOrder]);
+  const isLifeMapMode = state.mode === "life_map";
+
+  const activeTurnPlayerIds = useMemo(() => {
+    const knownPlayerIds = new Set(state.players.map((player) => player.id));
+    const groupedIds = (state.activeTurnPlayerIds ?? []).filter((playerId) =>
+      knownPlayerIds.has(playerId),
+    );
+    if (!isLifeMapMode && groupedIds.length === 0 && currentPlayer) {
+      return [currentPlayer.id];
+    }
+    return groupedIds;
+  }, [currentPlayer, isLifeMapMode, state.activeTurnPlayerIds, state.players]);
+
+  const activeTurnPlayers = useMemo(
+    () =>
+      activeTurnPlayerIds
+        .map((playerId) => state.players.find((player) => player.id === playerId))
+        .filter((player): player is DisplayPlayer => Boolean(player)),
+    [activeTurnPlayerIds, state.players],
+  );
 
   const roundInfo = useMemo(
     () => getRoundInfo(state.currentRound),
     [state.currentRound],
   );
-  const isLifeMapMode = state.mode === "life_map";
   const pendingLifeChoiceCount = Object.keys(state.pendingLifeChoices ?? {}).length;
   const onlinePlayerCount = state.players.filter((player) => player.online).length;
   const lifePlayersById = useMemo(
     () => new Map((state.lifePlayers ?? []).map((player) => [player.id, player])),
     [state.lifePlayers],
   );
-
-  // Auto-derive camera mode from game phase
-  const autoCameraMode: CameraMode = useMemo(() => {
-    if (state.phase === "lobby" || isLifeMapMode) return "cinema";
-    if (
-      currentPlayer &&
-      (state.phase === "rolling" ||
-        state.phase === "choosing" ||
-        state.phase === "animating")
-    ) {
-      return "follow";
-    }
-    return "overview";
-  }, [state.phase, currentPlayer, isLifeMapMode]);
-  const cameraMode = cameraOverride ?? autoCameraMode;
+  const primaryCurrentPlayer = activeTurnPlayers[0] ?? currentPlayer;
+  const pendingTurnChoices = useMemo(
+    () => state.pendingTurnChoices ?? {},
+    [state.pendingTurnChoices],
+  );
+  const activeTurnPendingCount = activeTurnPlayers.filter((player) =>
+    Boolean(pendingTurnChoices[player.id]),
+  ).length;
+  const lastTurnGroupResults = state.lastTurnGroupResults?.length
+    ? state.lastTurnGroupResults
+    : state.lastChoiceResult
+      ? [state.lastChoiceResult]
+      : [];
+  const activeChoicePanels = useMemo<ActiveChoicePanel[]>(
+    () =>
+      activeTurnPlayers.map((player) => {
+        const playerEvent =
+          state.activeTurnEvents?.[player.id] ??
+          (eventPlayerId === player.id ? showEvent : null) ??
+          state.currentEvent ??
+          showEvent;
+        const availableChoiceIds =
+          state.availableChoiceIdsByPlayer?.[player.id] ??
+          (eventPlayerId === player.id ? eventAvailableIds : undefined) ??
+          state.availableChoiceIds;
+        return {
+          player,
+          event: playerEvent,
+          availableChoiceIds,
+          selectedChoiceId: pendingTurnChoices[player.id],
+        };
+      }),
+    [
+      activeTurnPlayers,
+      eventAvailableIds,
+      eventPlayerId,
+      pendingTurnChoices,
+      showEvent,
+      state.activeTurnEvents,
+      state.availableChoiceIds,
+      state.availableChoiceIdsByPlayer,
+      state.currentEvent,
+    ],
+  );
+  const hasDisplayFallbackControls =
+    !isLifeMapMode &&
+    state.phase === "choosing" &&
+    activeChoicePanels.some((panel) => panel.event?.choices.length);
 
   // Fade out event overlay after choice result
   const fadeOutEvent = useCallback(() => {
@@ -502,6 +1266,25 @@ export function DisplayPage() {
     }, 5000);
   }, [fadeOutEvent]);
 
+  const sendDisplayChoice = useCallback((playerId: string, choiceId: string) => {
+    if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
+      return;
+    }
+    const payload: ClientMessage = {
+      type: "display_player_choice",
+      playerId,
+      choiceId,
+    };
+    wsRef.current.send(JSON.stringify(payload));
+  }, []);
+
+  const sendDisplayStart = useCallback(() => {
+    if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
+      return;
+    }
+    wsRef.current.send(JSON.stringify({ type: "display_start_game" } satisfies ClientMessage));
+  }, []);
+
   // WebSocket connection
   useEffect(() => {
     if (!targetUrl) {
@@ -526,16 +1309,14 @@ export function DisplayPage() {
 
       switch (message.type) {
         case "state":
-          // Detect new dice roll
-          if (message.state.lastRoll && message.state.phase === "choosing") {
-            setDiceRoll({
-              name: message.state.lastRoll.playerName,
-              value: message.state.lastRoll.value,
-              squares: message.state.lastRoll.squaresAdvanced,
-            });
-          }
           if (message.state.phase !== "lobby") {
             setStatus("接続済み");
+          }
+          if (message.state.phase === "choosing" && message.state.currentEvent) {
+            setShowEvent((current) => current ?? message.state.currentEvent);
+            setEventPlayerId(message.state.turnOrder[message.state.turnIndex] ?? null);
+            setEventAvailableIds(message.state.availableChoiceIds);
+            setEventFading(false);
           }
           stateRef.current = message.state;
           setState(message.state);
@@ -544,25 +1325,21 @@ export function DisplayPage() {
         case "show_event":
           setStatus("接続済み");
           playSfx("event");
-          // Delay event display so dice result is visible
-          setTimeout(() => {
-            setDiceRoll(null);
-            setShowEvent(message.event);
-            setEventPlayerId(message.playerId);
-            setEventAvailableIds(message.availableChoiceIds);
-            setChoiceResult(null);
-            setEventFading(false);
-          }, 1500);
+          setShowEvent(message.event);
+          setEventPlayerId(message.playerId);
+          setEventAvailableIds(message.availableChoiceIds);
+          setChoiceResult(null);
+          setEventFading(false);
           break;
 
         case "show_life_event":
           setStatus("接続済み");
           playSfx("event");
-          setDiceRoll(null);
           setShowEvent(message.event);
           setEventPlayerId(null);
           setEventAvailableIds(message.availableChoiceIds);
           setChoiceResult(null);
+          setAllChoicesRevealed(null);
           setEventFading(false);
           scheduleEventOverlayDismiss();
           break;
@@ -577,6 +1354,12 @@ export function DisplayPage() {
           }
           break;
 
+        case "all_choices_revealed":
+          playSfx("choice_result");
+          setAllChoicesRevealed(message.results);
+          setShowEvent(null);
+          break;
+
         case "round_end":
           playSfx("round_end");
           setRoundEndInfo(message.roundInfo);
@@ -585,7 +1368,11 @@ export function DisplayPage() {
 
         case "game_result":
           playSfx("game_result");
-          setGameResults(message.results);
+          setGameResults({
+            startedAt: stateRef.current.startedAt ?? null,
+            results: message.results,
+          });
+          setShowResultContent(false);
           // Show intro for 3s, then reveal content
           setTimeout(() => {
             setShowResultContent(true);
@@ -625,169 +1412,88 @@ export function DisplayPage() {
   };
 
   // ─── Result screen ──────────────────────────────────────────────
-  if (gameResults) {
-    const isLifeMapResult = gameResults.some((result) => result.academicStatus);
-    const radarData = buildExperienceRadarData(gameResults);
+  const localGameResults = gameResults?.startedAt === (state.startedAt ?? null)
+    ? gameResults.results
+    : null;
+  const effectiveGameResults = state.phase === "lobby"
+    ? null
+    : localGameResults ?? state.finalResults ?? null;
+  if (effectiveGameResults) {
+    const isLifeMapResult = effectiveGameResults.some((result) => result.academicStatus);
+    const shouldShowResults = showResultContent || Boolean(state.finalResults?.length && !localGameResults);
+    const rankingSets = RESULT_RANKINGS.map((config) => ({
+      config,
+      rankedResults: rankResults(effectiveGameResults, config),
+    }));
+    const expandedRanking = expandedRankingId
+      ? rankingSets.find((entry) => entry.config.id === expandedRankingId)
+      : null;
+    const marqueeResults = effectiveGameResults.length > 0
+      ? [...effectiveGameResults, ...effectiveGameResults]
+      : [];
+
     return (
-      <div className={`result-screen ${showResultContent ? "result-screen--revealed" : ""}`}>
-        {!showResultContent && (
+      <div className={`result-screen ${shouldShowResults ? "result-screen--revealed" : ""}`}>
+        {!shouldShowResults && (
           <div className="result-intro">4年間が過ぎた...</div>
         )}
-        {showResultContent && (
-          <div className="result-content">
-            <h1 style={{ textAlign: "center", marginBottom: 8 }}>
-              {isLifeMapResult ? "それぞれの4年間" : "卒業 - 最終結果"}
-            </h1>
-            <div className="result-radar-card">
-              <div className="result-section-title">経験値バランス</div>
-              <div className="result-radar-wrap">
-                <ResponsiveContainer width="100%" height="100%">
-                  <RadarChart data={radarData} cx="50%" cy="50%" outerRadius="72%">
-                    <PolarGrid stroke="rgba(255, 255, 255, 0.16)" />
-                    <PolarAngleAxis
-                      dataKey="stat"
-                      tick={{ fill: "var(--text-secondary)", fontSize: 12 }}
-                    />
-                    <PolarRadiusAxis
-                      domain={[0, 10]}
-                      tick={false}
-                      axisLine={false}
-                    />
-                    {gameResults.map((result, index) => {
-                      const color = colorForPlayer(index);
-                      return (
-                        <Radar
-                          key={result.playerId}
-                          name={result.playerName}
-                          dataKey={result.playerId}
-                          stroke={color}
-                          fill={color}
-                          fillOpacity={gameResults.length === 1 ? 0.28 : 0.12}
-                          strokeWidth={2}
-                        />
-                      );
-                    })}
-                  </RadarChart>
-                </ResponsiveContainer>
-              </div>
-              <div className="result-radar-legend">
-                {gameResults.map((result, index) => (
-                  <span key={result.playerId}>
-                    <i style={{ background: colorForPlayer(index) }} />
-                    {result.playerName}
-                  </span>
+        {shouldShowResults && (
+          <div className="result-content result-content--ceremony">
+            <div className="result-ceremony-header">
+              <div className="result-ceremony-header__label">Graduation board</div>
+              <h1>{isLifeMapResult ? "それぞれの4年間" : "卒業 - 最終結果"}</h1>
+              <p>ランキングを押すと、全員分の順位を表示します。</p>
+            </div>
+
+            <section className="result-leaderboard-grid" aria-label="項目別ランキング">
+              {rankingSets.map(({ config, rankedResults }) => (
+                <ResultLeaderboardCard
+                  key={config.id}
+                  config={config}
+                  rankedResults={rankedResults}
+                  onOpen={() => setExpandedRankingId(config.id)}
+                />
+              ))}
+            </section>
+
+            <section className="result-card-marquee" aria-label="個人カード">
+              <div className="result-card-marquee__track">
+                {marqueeResults.map((result, index) => (
+                  <ResultMarqueeCard
+                    key={`${result.playerId}-${index}`}
+                    result={result}
+                    index={index % effectiveGameResults.length}
+                  />
                 ))}
               </div>
-            </div>
-            {gameResults.map((result, index) => (
-              <div
-                key={result.playerId}
-                className={`result-player ${result.rank === 1 ? "result-player--winner" : ""}`}
-                style={{ "--player-color": colorForPlayer(index) } as CSSProperties}
-              >
-                {result.rank !== undefined ? (
-                  <div
-                    className={`result-rank ${result.rank <= 3 ? `result-rank--${result.rank}` : ""}`}
-                  >
-                    #{result.rank}
-                  </div>
-                ) : (
-                  <div className="result-rank result-rank--2">LIFE</div>
-                )}
-                <div className="result-info">
-                  <div className="result-ending-header">
-                    <span className="result-emoji">
-                      {result.academicStatus ? "\u{1F393}" : result.ending?.emoji ?? "\u{1F3C1}"}
-                    </span>
-                    <span className="result-player-name">
-                      {result.playerName}
-                    </span>
-                  </div>
-                  <div className="result-ending-title">
-                    {resultTitle(result) ?? "キャンパスライフ完走"}
-                  </div>
-                  <div className="result-ending-desc">
-                    {resultDescription(result) ?? "4年間の選択がここに刻まれました。"}
-                  </div>
-                  {result.ending?.flavorText && (
-                    <div className="result-flavor-text">
-                      {result.ending.flavorText}
-                    </div>
-                  )}
-                  <div className="result-mini-stats">
-                    {result.academicStatus ? (
-                      <>
-                        <span>{result.lifeArchetype?.title}</span>
-                        <span>{result.storyAward?.title}</span>
-                        <span>学業: {result.academicStatus.title}</span>
-                        <span>{result.storyTags?.slice(0, 3).join(" / ")}</span>
-                      </>
-                    ) : (
-                      <>
-                        <span>
-                          単位: {result.resources.credits}
-                        </span>
-                        <span>
-                          知性: {result.experience.intellect}
-                        </span>
-                        <span>
-                          人脈: {result.experience.connections}
-                        </span>
-                        <span>
-                          行動力: {result.experience.action_power}
-                        </span>
-                      </>
-                    )}
-                  </div>
-                  <div className="result-breakdown-grid">
-                    <div className="result-breakdown">
-                      <div className="result-section-title">リソース</div>
-                      <div className="result-chip-row">
-                        {RESOURCE_KEYS.map((key) => (
-                          <span key={key} className="result-stat-chip">
-                            {RESOURCE_LABELS[key]}: {result.resources?.[key] ?? 0}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                    {result.scoreBreakdown && (
-                      <div className="result-breakdown">
-                        <div className="result-section-title">スコア内訳</div>
-                        <div className="result-chip-row">
-                          {Object.entries(result.scoreBreakdown).map(([key, value]) => (
-                            <span
-                              key={key}
-                              className={`result-stat-chip ${key === "total" ? "result-stat-chip--total" : ""}`}
-                            >
-                              {SCORE_BREAKDOWN_LABELS[key as keyof typeof SCORE_BREAKDOWN_LABELS]}: {value}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </div>
-                {!result.academicStatus && (
-                  <div className="result-score">
-                    <div>{result.score ?? result.scoreBreakdown?.total ?? "-"}</div>
-                    <div className="result-score__label">SCORE</div>
-                  </div>
-                )}
-              </div>
-            ))}
+            </section>
+
+            {expandedRanking && (
+              <ResultRankingOverlay
+                config={expandedRanking.config}
+                rankedResults={expandedRanking.rankedResults}
+                onClose={() => setExpandedRankingId(null)}
+              />
+            )}
           </div>
         )}
       </div>
     );
   }
 
-  // ─── Determine highlight square ─────────────────────────────────
-  const highlightSquareId =
-    state.phase === "choosing" && currentPlayer
-      ? currentPlayer.position
-      : undefined;
-
-  const hasEventOverlay = showEvent !== null;
+  const isYearRecap = state.phase === "year_recap" && Boolean(state.yearRecap);
+  const overlayEvent = showEvent ?? activeChoicePanels.find((panel) => panel.event)?.event ?? null;
+  const isGroupResultOverlay =
+    !isLifeMapMode &&
+    state.phase === "animating" &&
+    lastTurnGroupResults.length > 1;
+  const hasEventOverlay =
+    !isYearRecap && (isGroupResultOverlay || overlayEvent !== null || hasDisplayFallbackControls);
+  const headerGroupLabel = turnGroupName(activeTurnPlayers);
+  const shouldShowDisplayStartGate =
+    state.phase !== "lobby" &&
+    state.phase !== "result" &&
+    !displayGameStarted;
 
   return (
     <div className="display-page" data-theme="dark">
@@ -808,6 +1514,21 @@ export function DisplayPage() {
             <span>
               {pendingLifeChoiceCount}/{onlinePlayerCount} 選択済み
             </span>
+          ) : !isLifeMapMode && activeTurnPlayers.length > 0 ? (
+            <>
+              <span
+                className="display-header__turn-name"
+                style={{ color: yearColor(roundInfo.year) }}
+              >
+                {headerGroupLabel}
+              </span>
+              {" "}
+              {state.phase === "choosing"
+                ? `${activeTurnPendingCount}/${activeTurnPlayers.length} 選択済み`
+                : state.phase === "animating"
+                  ? "の結果発表"
+                  : "のターン"}
+            </>
           ) : currentPlayer ? (
             <>
               <span
@@ -821,7 +1542,7 @@ export function DisplayPage() {
             </>
           ) : (
             <span style={{ color: "var(--text-secondary)" }}>
-              {state.phase === "lobby" ? "待機中" : "進行中"}
+              {phaseLabel(state.phase)}
             </span>
           )}
         </div>
@@ -848,7 +1569,30 @@ export function DisplayPage() {
       </header>
 
       {/* ── Main ──────────────────────────────────────────────────── */}
-      <div className="display-main">
+      <div className={`display-main ${isYearRecap ? "display-main--recap" : ""}`}>
+        {shouldShowDisplayStartGate ? (
+          <section className="display-start-gate">
+            <div className="display-start-gate__eyebrow">
+              Campus Life Game
+            </div>
+            <h1>48か月ボード</h1>
+            <p>
+              参加者の準備ができたら、ここからディスプレイを開始します。
+            </p>
+            <button
+              className="display-start-gate__button"
+              onClick={sendDisplayStart}
+            >
+              ゲームスタート
+            </button>
+            <div className="display-start-gate__meta">
+              {state.players.length}人参加中 / {statusLabel}
+            </div>
+          </section>
+        ) : isYearRecap && state.yearRecap ? (
+          <YearRecapStage state={state} recap={state.yearRecap} />
+        ) : (
+          <>
         {/* Board area */}
         <div
           className={`display-board-area ${hasEventOverlay ? "display-board-area--dimmed" : ""}`}
@@ -856,48 +1600,25 @@ export function DisplayPage() {
           {isLifeMapMode ? (
             <LifeMapStage state={state} />
           ) : (
-            <div className="mountain-canvas-wrap">
-              <MountainBoard
-                players={state.players}
-                currentPlayerId={currentPlayer?.id}
-                highlightSquareId={highlightSquareId}
-                cameraMode={cameraMode}
-              />
-            </div>
+            <FocusedMonthStage
+              state={state}
+              currentPlayerId={primaryCurrentPlayer?.id}
+              activeTurnPlayers={activeTurnPlayers}
+              pendingChoiceCount={activeTurnPendingCount}
+              lastTurnGroupResults={lastTurnGroupResults}
+              onOpenArchive={() => setShowMonthArchive(true)}
+            />
           )}
-
-          {/* Camera mode toggle */}
-          {!isLifeMapMode && (
-          <div className="camera-toolbar">
-            {(["overview", "follow", "cinema"] as CameraMode[]).map((m) => {
-              const active = cameraMode === m;
-              const label =
-                m === "overview" ? "俯瞰" : m === "follow" ? "追従" : "シネマ";
-              return (
-                <button
-                  key={m}
-                  className={`camera-toolbar__btn ${active ? "camera-toolbar__btn--active" : ""}`}
-                  onClick={() =>
-                    setCameraOverride((cur) =>
-                      cur === m ? null : m,
-                    )
-                  }
-                  title={cameraOverride === m ? "自動に戻す" : `カメラ: ${label}`}
-                >
-                  {label}
-                </button>
-              );
-            })}
-            {cameraOverride && (
+          {!isLifeMapMode && showMonthArchive && (
+            <div className="month-archive-modal">
+              <MonthArchiveStage state={state} currentPlayerId={primaryCurrentPlayer?.id} />
               <button
-                className="camera-toolbar__btn camera-toolbar__btn--reset"
-                onClick={() => setCameraOverride(null)}
-                title="自動切替に戻す"
+                className="month-archive-modal__close"
+                onClick={() => setShowMonthArchive(false)}
               >
-                自動
+                閉じる
               </button>
-            )}
-          </div>
+            </div>
           )}
         </div>
 
@@ -919,8 +1640,15 @@ export function DisplayPage() {
             const traitLabels = topLifeTraits(lifePlayer);
             const isActive = isLifeMapMode
               ? !state.pendingLifeChoices?.[player.id] && state.phase === "choosing"
-              : currentPlayer?.id === player.id;
+              : activeTurnPlayerIds.includes(player.id);
             const hasLifeChoice = Boolean(state.pendingLifeChoices?.[player.id]);
+            const hasBoardChoice = Boolean(pendingTurnChoices[player.id]);
+            const boardTurnStatus =
+              state.phase === "choosing"
+                ? hasBoardChoice ? "選択済み" : "選択中"
+                : state.phase === "animating"
+                  ? "発表中"
+                  : "進行中";
             const lastLifeEntry = lifePlayer?.history.at(-1);
             const lastLifeChoice = lastLifeEntry?.choiceLabel;
             return (
@@ -950,7 +1678,9 @@ export function DisplayPage() {
                   <span className="display-player-card__pos">
                     {isLifeMapMode
                       ? hasLifeChoice ? "選んだ道" : "道を選択中"
-                      : `#${player.position}`}
+                      : isActive
+                        ? boardTurnStatus
+                        : `#${player.position}`}
                   </span>
                 </div>
                 {isLifeMapMode ? (
@@ -975,7 +1705,7 @@ export function DisplayPage() {
                       ))}
                     </div>
                     <div className="display-player-card__last-route">
-                      {lastLifeChoice ?? "まだ道は刻まれていない"}
+                      {lastLifeChoice ?? "まだ選択履歴はありません"}
                     </div>
                     {lastLifeEntry && (
                       <div className="display-player-card__story-tags">
@@ -1016,81 +1746,124 @@ export function DisplayPage() {
             </div>
           )}
         </div>
+          </>
+        )}
       </div>
 
-      {/* ── Month Reveal Overlay ─────────────────────────────────── */}
-      {diceRoll && !showEvent && (
-        <div className="round-end-banner">
-          <div className="round-end-card" style={{ padding: "32px 48px" }}>
-            <div style={{ fontSize: 14, color: "#a0a0b0", marginBottom: 8 }}>
-              {diceRoll.name} の今月イベント
-            </div>
-            <div style={{ fontSize: 48, fontWeight: 800, lineHeight: 1 }}>
-              Month {state.currentRound}
-            </div>
-            <div style={{ fontSize: 18, color: "#a0a0b0", marginTop: 8 }}>
-              選択へ進む
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* ── Event Overlay ─────────────────────────────────────────── */}
-      {showEvent && (
+      {!shouldShowDisplayStartGate && hasEventOverlay && (overlayEvent || isGroupResultOverlay) && (
         <div
           className={`event-overlay ${eventFading ? "event-overlay--fadeout" : ""}`}
         >
-          <div className={`event-card ${showEvent.category ? "event-card--major" : ""}`}>
-            {showEvent.category && (
-              <div className="event-card__category">{showEvent.category}</div>
+          <div className={`event-card ${overlayEvent?.category ? "event-card--major" : ""} ${(hasDisplayFallbackControls || isGroupResultOverlay) ? "event-card--group" : ""}`}>
+            {overlayEvent?.category && (
+              <div className="event-card__category">{overlayEvent.category}</div>
             )}
-            <div className="event-card__title">{showEvent.title}</div>
-            <div className="event-card__description">
-              {showEvent.description}
+            <div className="event-card__title">
+              {isGroupResultOverlay ? "ふたりの選択が出そろった" : overlayEvent?.title}
             </div>
-            {eventPlayerId && (
+            <div className="event-card__description">
+              {isGroupResultOverlay
+                ? "同じ月の出来事でも、選び方にはその人らしさが出る。"
+                : overlayEvent?.description}
+            </div>
+
+            {isGroupResultOverlay ? null : hasDisplayFallbackControls ? (
+              <div className="event-card__player-label">
+                {headerGroupLabel} のターン
+                <span>{activeTurnPendingCount}/{activeTurnPlayers.length} 選択済み</span>
+              </div>
+            ) : eventPlayerId ? (
               <div className="event-card__player-label">
                 {state.players.find((p) => p.id === eventPlayerId)?.name ??
                   "?"}{" "}
                 の選択
               </div>
-            )}
+            ) : null}
 
-            <div className="event-card__choices">
-              {showEvent.choices.map((choice, i) => {
-                const isAvailable = eventAvailableIds.includes(choice.id);
-                const isChosen = choiceResult?.choiceId === choice.id;
-                const keyLabel = String.fromCharCode(65 + i); // A, B, C...
+            {isGroupResultOverlay ? (
+              <TurnGroupResultPanel results={lastTurnGroupResults} />
+            ) : hasDisplayFallbackControls ? (
+              <div className="display-fallback-grid">
+                {activeChoicePanels.map((panel, index) => (
+                  <DisplayFallbackChoicePanel
+                    key={panel.player.id}
+                    panel={panel}
+                    index={index}
+                    onSelect={sendDisplayChoice}
+                  />
+                ))}
+              </div>
+            ) : overlayEvent ? (
+              <div className="event-card__choices">
+                {overlayEvent.choices.map((choice, i) => {
+                  const isAvailable = eventAvailableIds.includes(choice.id);
+                  const isChosen = choiceResult?.choiceId === choice.id;
+                  const keyLabel = String.fromCharCode(65 + i); // A, B, C...
 
-                let className = "event-choice";
-                if (isChosen) className += " event-choice--chosen";
-                else if (!isAvailable)
-                  className += " event-choice--unavailable";
-                else className += " event-choice--available";
+                  let className = "event-choice";
+                  if (isChosen) className += " event-choice--chosen";
+                  else if (!isAvailable)
+                    className += " event-choice--unavailable";
+                  else className += " event-choice--available";
 
-                return (
-                  <div key={choice.id} className={className}>
-                    <div className="event-choice__key">{keyLabel}</div>
-                    <div className="event-choice__text">
-                      <div className="event-choice__label">{choice.label}</div>
-                      {choice.description && (
-                        <div className="event-choice__desc">
-                          {choice.description}
-                        </div>
-                      )}
-                      {choicePreviewBadges(choice)}
+                  return (
+                    <div key={choice.id} className={className}>
+                      <div className="event-choice__key">{keyLabel}</div>
+                      <div className="event-choice__text">
+                        <div className="event-choice__label">{choice.label}</div>
+                        {choice.description && (
+                          <div className="event-choice__desc">
+                            {choice.description}
+                          </div>
+                        )}
+                        {choicePreviewBadges(choice)}
+                      </div>
                     </div>
-                  </div>
-                );
-              })}
-            </div>
+                  );
+                })}
+              </div>
+            ) : null}
 
             {/* Show effects after choice */}
-            {choiceResult && effectBadges(choiceResult.effects).length > 0 && (
+            {!isGroupResultOverlay && choiceResult && effectBadges(choiceResult.effects).length > 0 && (
               <div className="event-effects">
                 {effectBadges(choiceResult.effects)}
               </div>
             )}
+            {!isGroupResultOverlay && lastTurnGroupResults.length > 1 && (
+              <TurnGroupResultPanel results={lastTurnGroupResults} />
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ── All Choices Revealed Overlay (simultaneous mode) ─────── */}
+      {allChoicesRevealed && (
+        <div className="event-overlay">
+          <div className="event-card">
+            <div className="event-card__category">一斉開示</div>
+            <div className="event-card__title">全員の選択が明らかに！</div>
+            <div className="event-card__choices">
+              {allChoicesRevealed.map((result) => (
+                <div key={result.playerId} className="event-choice event-choice--chosen" style={{ justifyContent: "space-between" }}>
+                  <div className="event-choice__text">
+                    <div className="event-choice__label" style={{ fontSize: 13, color: "var(--text-secondary)" }}>
+                      {result.playerName}
+                    </div>
+                    <div style={{ fontWeight: 600 }}>→ {result.choiceLabel}</div>
+                  </div>
+                  {result.tone && (
+                    <span className="event-effect-badge event-effect-badge--positive" style={{ flexShrink: 0 }}>
+                      {result.tone}
+                    </span>
+                  )}
+                </div>
+              ))}
+            </div>
+            <div style={{ textAlign: "center", marginTop: 12, fontSize: 13, color: "var(--text-secondary)" }}>
+              ホストが次のイベントへ進めます
+            </div>
           </div>
         </div>
       )}

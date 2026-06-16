@@ -11,7 +11,7 @@
         "effects": {
           "time": 3,
           "money": -2,
-          "credits": -2,
+          "credits": 0,
           "health": 3
         }
       },
@@ -57,6 +57,101 @@
       }
     ]
   },
+  "単位回収": {
+    "id": "単位回収",
+    "title": "教務課で履修相談",
+    "description": "卒業までのペースが大きく遅れている。補講や集中講義をどう使うか決める。",
+    "category": "履修",
+    "effectBudgetTarget": 3,
+    "choices": [
+      {
+        "id": "単位回収A",
+        "label": "集中講義を入れて帳尻を合わせる",
+        "effects": {
+          "time": -1,
+          "credits": 6
+        },
+        "intentTags": [
+          "study",
+          "work"
+        ]
+      },
+      {
+        "id": "単位回収B",
+        "label": "教授に相談して再提出を整える",
+        "effects": {
+          "credits": 4,
+          "intellect": 1
+        },
+        "intentTags": [
+          "study",
+          "research"
+        ]
+      },
+      {
+        "id": "単位回収C",
+        "label": "友達と補講の予定を組む",
+        "effects": {
+          "credits": 3,
+          "connections": 2
+        },
+        "intentTags": [
+          "study",
+          "social"
+        ]
+      }
+    ]
+  },
+  "休学相談": {
+    "id": "休学相談",
+    "title": "休学相談",
+    "description": "体調が落ちて、学生生活の続け方を考える時期になった。",
+    "category": "生活",
+    "choices": [
+      {
+        "id": "休学相談A",
+        "label": "一度休学して整える",
+        "effects": {
+          "health": 3,
+          "time": 2
+        },
+        "flagEffects": {
+          "on_leave": true
+        },
+        "intentTags": [
+          "rest",
+          "risk"
+        ],
+        "resultWeight": 2
+      },
+      {
+        "id": "休学相談B",
+        "label": "相談しながら通い続ける",
+        "effects": {
+          "health": 2,
+          "connections": 2,
+          "time": 1
+        },
+        "intentTags": [
+          "rest",
+          "social"
+        ]
+      },
+      {
+        "id": "休学相談C",
+        "label": "履修を絞って続ける",
+        "effects": {
+          "credits": 2,
+          "health": 2,
+          "intellect": 1
+        },
+        "intentTags": [
+          "study",
+          "rest"
+        ]
+      }
+    ]
+  },
   "金欠": {
     "id": "金欠",
     "title": "金欠イベント",
@@ -71,7 +166,11 @@
           "money": 3,
           "health": -1,
           "work_tolerance": 1
-        }
+        },
+        "intentTags": [
+          "work",
+          "risk"
+        ]
       },
       {
         "id": "金欠B",
@@ -79,7 +178,11 @@
         "effects": {
           "money": 2,
           "connections": -1
-        }
+        },
+        "intentTags": [
+          "social",
+          "risk"
+        ]
       },
       {
         "id": "金欠C",
@@ -88,21 +191,33 @@
           "time": -1,
           "money": 4,
           "intellect": 1
-        }
+        },
+        "intentTags": [
+          "study",
+          "work"
+        ]
       }
     ]
   },
   "無灯火運転": {
     "id": "無灯火運転",
     "title": "無灯火運転で捕まる",
-    "description": "自転車の無灯火で警察に止められた。",
-    "category": "ランダム",
+    "description": "原付の無灯火で警察に止められた。",
+    "category": "特殊",
+    "condition": {
+      "requiredFlags": {
+        "has_license": true
+      }
+    },
     "choices": [
       {
         "id": "無灯火運転A",
         "label": "反省する",
         "effects": {
-          "money": -1
+          "money": -1,
+          "work_tolerance": 1,
+          "action_power": 1,
+          "romance_exp": -1
         }
       }
     ]

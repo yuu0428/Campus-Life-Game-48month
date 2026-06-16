@@ -27,5 +27,6 @@ dist-ssr
 # Local agent and browser verification artifacts
 .claude/
 .playwright-mcp/
+screenshots/
 campus-life-*.png
 progress.md

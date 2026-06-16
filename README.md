@@ -1,189 +1,361 @@
 # Campus Life Game
 
-大学4年間をどう過ごすかを競う、マルチプレイ対応のキャンパス人生ゲーム。
+大学4年間を48か月で進める、マルチプレイ対応のキャンパス生活ゲームです。
 
-> 📋 **開発仕様書（v2）** → [`docs/spec-v2.md`](docs/spec-v2.md)  
-> 実装タスクの詳細は GitHub Issues を参照してください。
+このREADMEは、次に開発する人やAIエージェントが「どの画面・どのコード・どの起動方法が正しいのか」を迷わないための運用マニュアルです。
 
-ホストPCが進行を管理し、参加者はスマホからQRコードで参加。共有モニターに盤面を映して遊びます。
+## 現在の正
+
+- 本番のゲーム体験は **48か月ボード** です。
+- 起動コマンドは原則 **`npm run board`** です。
+- 通常のホスト画面に出してよい開始ボタンは **`ゲームを開始` 1つだけ** です。
+- `人生マップ` は本番ではありません。開発用検証としてコードが残っているだけです。
+- 既にブラウザで開いている `localhost` が最新版とは限りません。必ず `pwd`、`git branch --show-current`、起動コマンド、ポートを確認してください。
+
+## 二度と混同しないためのルール
+
+### 最新版の判断
+
+最新版かどうかは、開いているブラウザではなく、この順番で確認します。
+
+```bash
+pwd
+git branch --show-current
+git status --short
+npm run
+```
+
+このリポジトリの標準作業場所は次です。
+
+```text
+/Users/yura/myapps/Campus-Life-Game
+```
+
+別worktreeや別フォルダに似たコードがある場合でも、勝手にそちらを最新版扱いしないでください。別のコードを取り込む場合は、先に「何を正にするか」を確認し、差分単位で移植します。
+
+### ポートの扱い
+
+- `4191`: 48か月ボードの確認に使う標準ポート
+- `4173`: 通常のサーバー既定値、またはVite開発時に見えることがあるポート
+- `4180` / `4181` など: 過去のライブプレイや別検証で使われた可能性があるポート
+
+ブラウザに古い画面が残っているだけで、コードが戻ったように見えることがあります。挙動を判断する前に、どのプロセスがどのポートを使っているか確認してください。
+
+```bash
+lsof -nP -iTCP:4191 -sTCP:LISTEN
+lsof -nP -iTCP:4173 -sTCP:LISTEN
+```
+
+ライブプレイ中のポートは、明示的に頼まれない限り再起動しません。
+
+### 人生マップの扱い
+
+`life_map` / `人生マップ` 関連のコードは残っていますが、現在の本番導線ではありません。
+
+- 通常のホスト画面からは開始させない
+- READMEや説明で最新版として扱わない
+- 48か月ボードの不具合修正に混ぜて触らない
+- 必要なら別タスクとして削除または再統合する
+
+本番の開発判断で見るべき中心は、`board` / `48か月ボード` / `start_game` です。
 
 ## 起動方法
 
-### 必要なもの
-
-- Node.js 20以上
-- npm
-
-### インストール
+### 初回セットアップ
 
 ```bash
 npm install
 ```
 
-### 本番モード（ビルド + サーバー起動）
+### 48か月ボードを起動する
+
+通常はこれだけを使います。
 
 ```bash
-npm run build
-npm run start
+npm run board
 ```
 
-http://localhost:4173 をブラウザで開く。
+デフォルトではビルド後に `http://localhost:4191` で起動します。
 
-### 開発モード（ホットリロード付き）
-
-ターミナルを2つ開いて：
+別ポートを使う場合:
 
 ```bash
-# ターミナル1: フロントエンド（変更即反映）
+npm run board -- --port 4192
+```
+
+起動後に使うURL:
+
+```text
+Host:       http://localhost:4191/
+Display:    http://localhost:4191/display.html?host=http%3A%2F%2Flocalhost%3A4191
+Controller: http://localhost:4191/controller.html?host=http%3A%2F%2Flocalhost%3A4191
+```
+
+ホスト画面で参加者が入ったら `ゲームを開始` を押します。ディスプレイ側には追加で `ゲームスタート` ボタンが出ます。これは、ホストが開始してもディスプレイが準備できるまでイベントを見せないためのゲートです。
+
+### ローカルWi-Fiやトンネルで遊ぶ
+
+```bash
+# ローカルWi-Fi
+npm run game -- --port 4191
+
+# 学外・別回線の参加者にも共有する
+npm run game:tunnel -- --port 4191
+```
+
+`game:tunnel` は Cloudflare Tunnel の公開URLをホスト画面へ通知し、参加者向けQRも公開URLを優先して表示します。
+
+### 開発モード
+
+開発中にフロントをViteで見る場合だけ使います。
+
+```bash
+# Terminal 1
 npm run dev
 
-# ターミナル2: ゲームサーバー
+# Terminal 2
 npm run dev:server
 ```
 
-- Vite dev server: http://localhost:5173
-- ゲームサーバー: http://localhost:4173
+この場合、Vite側とゲームサーバー側でURLが分かれます。実プレイ確認は `npm run board` の方を優先してください。
 
-## 遊び方
+## ゲーム体験
 
-1. ホスト画面（http://localhost:4173）を開いて「ホストとして開始」
-2. 表示されるQRコードを参加者がスマホで読み取って参加
-3. 「ディスプレイを開く」でモニター用の盤面表示画面を開く
-4. 参加者が揃ったら「ゲームを開始！」
-5. 各プレイヤーが順番にサイコロを振り、イベントの選択肢を選ぶ
-6. 16ラウンド（大学4年間）を終えると結果発表
+このゲームの目的は、点数最大化ではありません。
 
-### デバッグモード（PC1台でテスト）
+- 大学生活っぽい迷いがある
+- 友人同士で「それ選ぶんだ」と話せる
+- 卒業できる安心感はあるが、完全な作業にはしない
+- 選択履歴によって生活タイプや最終結果が変わる
+- 明らかな正解・明らかなハズレだけの選択肢にしない
 
-ホスト接続後に表示される「デバッグモード」パネルから「全画面を一括オープン」を押すと、ディスプレイ＋コントローラー×2が別ウィンドウで開きます。
+## 48か月ボード仕様
 
-## 技術スタック
+- 大学4年間を48か月で進める
+- 1か月ごとにイベントが発生する
+- プレイ中は現在のイベントだけを大きく見せる
+- 1年、2年、3年の終わりに年末recapを表示する
+- recap後に翌年の方針選択が入る
+- 4年終了時は最終結果へ進む
 
-- **フロントエンド**: React 19 + TypeScript + Vite
-- **サーバー**: Express + WebSocket (ws)
-- **通信**: WebSocket によるリアルタイム同期
-- **その他**: qrcode.react, recharts, canvas-confetti
+## 回答方式
 
-## ディレクトリ構成
+ホスト画面で回答方式を切り替えられます。
+
+- `2人ずつ`: 2人が同じターンでそれぞれ選ぶ
+- `全員一斉`: 参加者全員が同じタイミングで選ぶ
+
+2人ずつの場合、奇数人数なら最後だけ1人で進みます。途中参加、途中削除、オフライン復帰があっても、次のターン対象は再計算されます。
+
+## ホスト操作
+
+ホストは進行中に以下の操作ができます。
+
+- プレイヤー削除
+- ゲーム終了
+- ゲームリセット
+- 回答方式の変更
+- fallback mode のON/OFF
+- スマホ側で操作できない時の代理選択
+
+fallback mode では、メインディスプレイやホスト画面からも選択肢を選べます。スマホの操作ミスや接続問題が起きた時に、ゲームを止めずに進めるための機能です。
+
+## 選択肢とバランス
+
+- 選択肢には `+3` / `-1` のような数値効果を表示しない
+- 通常選択肢は効果合計が原則 `+3`
+- 条件付き、危機、閾値イベントは必要に応じて `+5` まで許容
+- 単位は原則マイナスにしない
+- 明らかな正解・明らかなハズレだけの選択肢にしない
+- ランダム選択でも破綻しないが、意識して選ぶと生活タイプが分岐する
+
+## 単位と卒業
+
+- 卒業要件は `124単位`
+- 学期末に基礎単位が入る
+- 通常イベントでも少しずつ単位が入る
+- 単位が遅れていると `単位回収チャンス` が出る
+- 単位回収は便利だが、ゲーム全体を支配しない頻度に抑える
+
+ランダム選択でも多くのプレイヤーは卒業できますが、完全に単位を無視すると持ち越しになる可能性があります。
+
+## 結果判定
+
+最終結果は、最終ステータスだけではなく選択履歴から決まります。
+
+- `academicStatus`: 卒業、卒業は持ち越し、進路保留、休む判断
+- `lifeArchetype`: 研究・学び型、人間関係の中心、恋愛も大事にした人、進路を作った人、制作・挑戦型、生活を守った人
+- `storyAward`: 4年間を象徴する代表エピソード
+
+選択履歴には `intentTags` が保存されます。
+
+主なタグ:
+
+- `study`
+- `research`
+- `social`
+- `community`
+- `romance`
+- `career`
+- `work`
+- `creative`
+- `adventure`
+- `rest`
+- `risk`
+
+知力が高いだけでは「研究・学び型」になりません。研究、授業、ゼミ、卒論などの選択履歴が必要です。
+
+## 恋人状態
+
+恋人関係は現在状態と過去履歴を分けます。
+
+- `has_partner`: 現在恋人がいる
+- `cheating`: 現在進行中の浮気
+- `cheated_before`: 過去に浮気した
+- `romance_restarted`: 別れた後に再スタートした
+
+浮気がバレた場合は `has_partner: false` に戻します。その後、告白、出会い、合コンなどで新しい恋人を作れる状態にします。最終結果では「今恋人がいる」「過去に浮気した」「別れた後に再スタートした」を区別して表示します。
+
+## 救済イベント
+
+ステータスがマイナスになった場合、次のターンで救済イベントが出ることがあります。
+
+- 対象ステータスを0まで戻す選択肢を出す
+- 代わりに別のステータスやリソースを支払う
+- 救済を受けず、本来のイベントへ進む選択肢も残す
+- 同じ救済が連続しないよう cooldown を持つ
+- 年間上限を持つ
+
+救済はゲームを壊さないための安全装置であり、主役ではありません。
+
+## 状態矛盾の防止
+
+イベントや選択肢には `requiredFlags` / `excludedFlags` を使います。
+
+例:
+
+- 恋人がいない人に恋人前提イベントを出さない
+- 恋人がいる人に合コンイベントを出す場合は「危険な香り」として扱う
+- 一人暮らしではない人に一人暮らし前提イベントを出さない
+- 免許がない人に免許前提イベントを出さない
+- 留学、休学、ゼミ、進路なども状態に合わせて制御する
+
+イベント追加時は、ステータス効果だけでなく「その人の現在状態で起きて自然か」を確認します。
+
+## イベントデータ
+
+主なイベントデータは `data/events/` にあります。
 
 ```text
-.
-├─ docs/                # 仕様書・ゲームデザイン
-├─ public/              # 静的アセット
-├─ server/              # Express + WebSocket サーバー
-│  ├─ index.js          # ゲーム進行のメイン
-│  ├─ board.js          # 盤面遷移ロジック
-│  ├─ events.js         # JSONイベント読み込み
-│  └─ endings.js        # スコアとエンディング判定
-├─ data/
-│  └─ events/
-│     ├─ main.json      # 通常マスイベント（49件）
-│     └─ threshold.json # 閾値イベント（4件）
-├─ scripts/
-│  └─ validate-events.mjs # イベント定義の整合性チェック
-├─ src/                 # React クライアント
-│  ├─ pages/
-│  │  ├─ host.tsx           # ホスト画面
-│  │  ├─ controller.tsx     # 参加待機画面
-│  │  ├─ controllerPlay.tsx # プレイ画面
-│  │  └─ display.tsx        # 共有ディスプレイ画面
-│  ├─ components/
-│  │  └─ Board.tsx          # 盤面表示コンポーネント
-│  ├─ domain/
-│  │  ├─ boardData.ts       # 盤面データ
-│  │  ├─ endings.ts         # エンディング定義
-│  │  └─ gameShared.ts      # 共通型・共通ロジック
-│  ├─ main.tsx              # ホスト画面エントリ
-│  ├─ App.css
-│  └─ index.css
-├─ index.html           # ホストエントリ
-├─ controller.html      # 参加待機エントリ
-├─ controller-play.html # プレイエントリ
-└─ display.html         # ディスプレイエントリ
+data/events/
+├─ main.json         # 48か月ボードの通常イベント
+├─ randomPool.json   # ランダムイベント
+├─ vacationPool.json # 夏休み・春休みイベント
+├─ threshold.json    # 危機・救済・単位回収などの閾値イベント
+└─ timeline.json     # life_map 検証用。本番判断では使わない
 ```
 
-## イベント編集
-
-イベント本文の編集は次の2ファイルだけでできます。
-
-- `data/events/main.json`
-- `data/events/threshold.json`
-
-編集後は以下で整合性チェック:
+イベント編集後は必ずチェックします。
 
 ```bash
 npm run events:check
 ```
 
-### イベントJSONテンプレート
+## 検証
 
-`data/events/main.json` の1イベント例:
+基本の検証:
 
-```json
-"18": {
-  "id": "18",
-  "title": "実習 / 教職の現実",
-  "description": "教職を取ってた人は実習。取ってない人は別イベント。",
-  "category": "学業",
-  "choices": [
-    {
-      "id": "18A",
-      "label": "実習を全力でやる",
-      "effects": { "time": -3, "credits": 4, "health": -2, "intellect": 2, "connections": 1, "work_tolerance": 2 }
-    },
-    {
-      "id": "18B",
-      "label": "なんとか乗り切る",
-      "effects": { "time": -2, "credits": 2, "health": -1, "intellect": 1, "work_tolerance": 1 }
-    }
-  ]
-}
+```bash
+npm run events:check
+node --test server/*.test.js
+npm run lint
+npm run build
 ```
 
-`conditionalVariants` 付き例:
+ランダムプレイシミュレーション:
 
-```json
-"27": {
-  "id": "27",
-  "title": "卒論を書く",
-  "description": "in_seminar の人は避けられない。",
-  "category": "学業",
-  "choices": [],
-  "conditionalVariants": [
-    {
-      "condition": { "requiredFlags": { "in_seminar": true } },
-      "description": "ゼミ所属なら卒論イベント",
-      "choices": [
-        {
-          "id": "27A",
-          "label": "魂を込めて書く",
-          "effects": { "time": -3, "credits": 5, "health": -2, "intellect": 3, "work_tolerance": 1 }
-        }
-      ]
-    }
-  ]
-}
+```bash
+npm run sim:random -- --runs 100 --players 4 --turn-mode pair --seed 20260518 --timeout-ms 120000 --enforce-after
 ```
 
-`data/events/threshold.json` の1イベント例:
+このチェックでは、卒業率、生活タイプ分布、恋愛型、留学、休学、救済頻度、48回の選択履歴、ターン飛ばしや重複がないことを確認します。
 
-```json
-"金欠": {
-  "id": "金欠",
-  "title": "金欠イベント",
-  "description": "口座残高がマイナス。生活ができない。",
-  "category": "危機",
-  "choices": [
-    {
-      "id": "金欠A",
-      "label": "日払いバイトで食いつなぐ",
-      "effects": { "time": -2, "money": 3, "health": -1, "work_tolerance": 1 }
-    }
-  ]
-}
+## 画面確認の手順
+
+挙動がおかしい時は、いきなりコードを直さずにこの順番で確認します。
+
+1. `pwd` で作業場所を確認する
+2. `git branch --show-current` でブランチを確認する
+3. `git status --short` で未反映の差分を確認する
+4. `lsof -nP -iTCP:<port> -sTCP:LISTEN` でポートの実体を確認する
+5. `npm run board -- --port <port>` で別ポートに起動する
+6. Host、Display、Controllerを同じポートで開く
+7. 実際に参加、開始、ディスプレイの `ゲームスタート`、選択、年末recapまで進める
+
+別セッションや別worktreeの変更を取り込む時も、先にこの確認を行います。
+
+## ディレクトリ構成
+
+```text
+.
+├─ data/
+│  └─ events/
+├─ public/
+├─ scripts/
+│  ├─ random-playthrough.mjs
+│  ├─ simulate.mjs
+│  ├─ start-board.mjs
+│  ├─ start-game.mjs
+│  └─ validate-events.mjs
+├─ server/
+│  ├─ board.js
+│  ├─ effectBudget.js
+│  ├─ endings.js
+│  ├─ events.js
+│  ├─ index.js
+│  ├─ intentTags.js
+│  └─ timelineGame.js
+├─ src/
+│  ├─ domain/
+│  │  ├─ endings.ts
+│  │  └─ gameShared.ts
+│  ├─ pages/
+│  │  ├─ controller.tsx
+│  │  ├─ controllerPlay.tsx
+│  │  ├─ display.tsx
+│  │  └─ host.tsx
+│  └─ utils/
+├─ controller.html
+├─ controller-play.html
+├─ display.html
+└─ index.html
 ```
 
-補足:
-- `effects` の値は数値のみ（加算/減算）
-- 分岐用選択肢は `branchRoute` を指定（例: `"branchRoute": "17A-1"`）
-- ランダム効果は `randomChance` と `randomBonusEffects` / `randomPenaltyEffects`
+## 開発時の禁止事項
+
+- 開いているブラウザだけを見て「最新版」と判断しない
+- 別worktreeのコードを丸ごと正として上書きしない
+- ライブプレイ中のポートを勝手に再起動しない
+- `life_map` を本番の最新版として扱わない
+- 48か月ボードの修正に人生マップの仕様変更を混ぜない
+- 選択肢に数値効果を表示しない
+- 単位が減る通常イベントを追加しない
+- `any` キャストでTypeScriptエラーを黙らせない
+- 依頼されていないリファクタリングを混ぜない
+
+## 迷った時の判断基準
+
+迷ったら、まずこう判断します。
+
+```text
+正: 48か月ボード
+正: npm run board
+正: 通常ホスト画面の「ゲームを開始」
+正: 参加者が選択して、年末recapを経て、最終結果に進む体験
+
+非正: 人生マップを最新版として扱う
+非正: 既に開いているlocalhostだけで判断する
+非正: 別worktreeを丸ごと取り込む
+非正: テスト用スクリーンショットや過去ポートを根拠にする
+```
+

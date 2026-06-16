@@ -29,7 +29,7 @@
     "choices": [
       {
         "id": "random_sns_A",
-        "label": "流れに乗る",
+        "label": "誘いに乗る",
         "effects": {
           "connections": 2,
           "action_power": 1
@@ -50,10 +50,10 @@
     "choices": [
       {
         "id": "random_sick_A",
-        "label": "休んで回復する",
+        "label": "予定を切って休む",
         "effects": {
-          "health": -2,
-          "time": -1
+          "health": 1,
+          "time": -2
         },
         "badLuckDelta": 1,
         "polarity": "negative"
@@ -163,6 +163,9 @@
             "romance_exp": 3,
             "connections": 1
           },
+          "onSuccessFlags": {
+            "has_partner": true
+          },
           "onFailure": {
             "romance_exp": 1,
             "health": -1
@@ -172,7 +175,18 @@
         "storyTags": [
           "恋愛"
         ],
-        "polarity": "mixed"
+        "polarity": "mixed",
+        "intentTags": [
+          "romance",
+          "social"
+        ],
+        "routeTags": [
+          "romance",
+          "social"
+        ],
+        "outcomeTags": [
+          "romance.meeting"
+        ]
       },
       {
         "id": "random_gokon_B",
@@ -180,11 +194,72 @@
         "effects": {
           "health": 2
         },
-        "polarity": "positive"
+        "polarity": "positive",
+        "intentTags": [
+          "rest"
+        ],
+        "routeTags": [],
+        "outcomeTags": [
+          "romance.skipped"
+        ]
       }
     ],
     "weight": 8,
-    "polarity": "mixed"
+    "polarity": "mixed",
+    "conditionalVariants": [
+      {
+        "condition": {
+          "requiredFlags": {
+            "has_partner": true
+          }
+        },
+        "title": "合コンに誘われる（危険な香り）",
+        "description": "恋人がいるのに、友人から合コンに誘われた。",
+        "choices": [
+          {
+            "id": "random_gokon_partner_A",
+            "label": "参加してしまう",
+            "effects": {},
+            "cheatAction": true,
+            "intentTags": [
+              "romance",
+              "risk"
+            ],
+            "routeTags": [
+              "romance"
+            ],
+            "outcomeTags": [
+              "romance.cheating_risk"
+            ],
+            "budgetMode": "failure",
+            "polarity": "negative"
+          },
+          {
+            "id": "random_gokon_partner_B",
+            "label": "断って恋人に連絡する",
+            "effects": {
+              "romance_exp": 1,
+              "health": 1
+            },
+            "flagEffects": {
+              "romance_committed": true,
+              "cheating": false
+            },
+            "intentTags": [
+              "romance",
+              "rest"
+            ],
+            "routeTags": [
+              "romance"
+            ],
+            "outcomeTags": [
+              "romance.commitment"
+            ],
+            "polarity": "positive"
+          }
+        ]
+      }
+    ]
   },
   "random_cheat": {
     "id": "random_cheat",
@@ -198,7 +273,18 @@
         "label": "乗り気になってしまう",
         "effects": {},
         "cheatAction": true,
-        "polarity": "negative"
+        "polarity": "negative",
+        "intentTags": [
+          "romance",
+          "risk"
+        ],
+        "routeTags": [
+          "romance"
+        ],
+        "outcomeTags": [
+          "romance.cheating_risk"
+        ],
+        "budgetMode": "failure"
       },
       {
         "id": "random_cheat_B",
@@ -208,7 +294,21 @@
           "health": 1
         },
         "badLuckDelta": -1,
-        "polarity": "positive"
+        "polarity": "positive",
+        "intentTags": [
+          "romance",
+          "rest"
+        ],
+        "routeTags": [
+          "romance"
+        ],
+        "outcomeTags": [
+          "romance.commitment"
+        ],
+        "flagEffects": {
+          "romance_committed": true,
+          "cheating": false
+        }
       }
     ],
     "weight": 6,
@@ -287,5 +387,70 @@
     ],
     "weight": 5,
     "polarity": "negative"
+  },
+  "random_study_abroad": {
+    "id": "random_study_abroad",
+    "title": "留学の募集",
+    "description": "大学から短期留学プログラムの案内が来た。",
+    "year": null,
+    "category": "ランダム",
+    "choices": [
+      {
+        "id": "random_study_abroad_A",
+        "label": "短期留学に申し込む",
+        "effects": {
+          "intellect": 2,
+          "action_power": 2,
+          "money": -1
+        },
+        "flagEffects": {
+          "studying_abroad": true
+        },
+        "intentTags": [
+          "adventure",
+          "research",
+          "community"
+        ],
+        "resultWeight": 2,
+        "polarity": "positive"
+      },
+      {
+        "id": "random_study_abroad_B",
+        "label": "国際交流イベントに行く",
+        "effects": {
+          "connections": 2,
+          "intellect": 1
+        },
+        "intentTags": [
+          "community",
+          "social",
+          "adventure"
+        ],
+        "polarity": "positive"
+      },
+      {
+        "id": "random_study_abroad_C",
+        "label": "今は情報だけ集める",
+        "effects": {
+          "intellect": 1,
+          "action_power": 1,
+          "money": 1
+        },
+        "intentTags": [
+          "career",
+          "adventure",
+          "study"
+        ],
+        "polarity": "positive"
+      }
+    ],
+    "weight": 5,
+    "polarity": "positive",
+    "condition": {
+      "minRound": 18,
+      "excludedFlags": {
+        "studying_abroad": true
+      }
+    }
   }
 }

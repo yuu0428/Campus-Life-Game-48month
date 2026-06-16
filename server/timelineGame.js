@@ -30,7 +30,7 @@ const ACADEMIC_STATUSES = {
   graduated: {
     id: "graduated",
     title: "卒業",
-    description: "必要なものを回収し、大学生活をひと区切りにした。",
+    description: "必要な単位と手続きを終えて、大学生活をひと区切りにした。",
   },
   barely_graduated: {
     id: "barely_graduated",
@@ -40,25 +40,25 @@ const ACADEMIC_STATUSES = {
   on_leave_or_retained: {
     id: "on_leave_or_retained",
     title: "休学・留年",
-    description: "制度上は止まったが、その時間にも別の意味が残った。",
+    description: "卒業は少し先になったが、休む時間や考え直す時間を取った。",
   },
   retained: {
     id: "retained",
     title: "留年",
-    description: "卒業条件には届かなかった。だが4年間が空白だったわけではない。",
+    description: "卒業条件には届かなかった。でも、4年間で人間関係や経験は残った。",
   },
 };
 
 const LIFE_ARCHETYPES = {
   steady_builder: {
     id: "steady_builder",
-    title: "静かな土台づくり型",
+    title: "生活を整えた堅実型",
     description: "派手さよりも生活、学業、将来の足場を整え続けた。",
   },
   social_burnout: {
     id: "social_burnout",
     title: "燃え尽き型の人脈モンスター",
-    description: "人とのつながりと勢いで走り抜け、生活の余白を燃やし切った。",
+    description: "人とのつながりと勢いで走り抜け、睡眠と予定の余裕を削り切った。",
   },
   self_searcher: {
     id: "self_searcher",
@@ -72,7 +72,7 @@ const LIFE_ARCHETYPES = {
   },
   social_connector: {
     id: "social_connector",
-    title: "キャンパス接続型",
+    title: "友達と先輩に強い型",
     description: "人間関係を広げ、誰かとの関わりから生活を作った。",
   },
   balanced: {
@@ -85,8 +85,8 @@ const LIFE_ARCHETYPES = {
 const STORY_AWARDS = {
   quietly_built_future: {
     id: "quietly_built_future",
-    title: "静かに未来を組み立てた人",
-    description: "派手な事件より、続けたことと整えたことが残った。",
+    title: "準備を積み上げた人",
+    description: "派手な出来事より、授業や生活を続けたことが残った。",
   },
   campus_legend_retained: {
     id: "campus_legend_retained",
@@ -96,17 +96,17 @@ const STORY_AWARDS = {
   left_with_selfhood: {
     id: "left_with_selfhood",
     title: "単位より自分を持って帰った人",
-    description: "制度上の成果は薄くても、自分の輪郭は濃くなった。",
+    description: "単位や進路は弱いが、自分が何をしたいかははっきりしてきた。",
   },
   nonlinear_beauty: {
     id: "nonlinear_beauty",
     title: "まっすぐ戻らなかった人",
-    description: "予定された道から外れたぶん、誰にも似ていない物語を持ち帰った。",
+    description: "予定通りには進まなかったが、人とは違う経験を持って卒業を迎えた。",
   },
   protected_blank_space: {
     id: "protected_blank_space",
-    title: "空白を守り抜いた人",
-    description: "何もしない時間を、逃げではなく自分を保つ場所として使った。",
+    title: "休む時間を守った人",
+    description: "予定を入れすぎず、自分の生活を立て直す時間に使った。",
   },
   hard_landing: {
     id: "hard_landing",
@@ -214,8 +214,40 @@ export function getChoicePreview(choice) {
   };
 }
 
-export function applyTimelineChoice(player, seasonEvent, choice) {
-  const normalizedEffects = normalizeChoiceEffects(choice.effects ?? {});
+// 学期シーズンを event.id から取得 ("year1-autumn" → "autumn")
+function getSeasonFromEventId(eventId) {
+  return eventId?.split("-")[1] ?? "";
+}
+
+export function applyTimelineChoice(player, seasonEvent, choice, philosophy = "equal") {
+  let effects;
+
+  if (philosophy === "realistic") {
+    // 正規化なし・生値をそのまま適用。単位は増えるだけで減らない
+    effects = {};
+    for (const [key, value] of Object.entries(choice.effects ?? {})) {
+      if (!LIFE_TRAIT_KEYS.includes(key) || typeof value !== "number" || value === 0) continue;
+      effects[key] = key === "academic" ? Math.max(0, value) : value;
+    }
+  } else {
+    // equal モード: 正規化で全選択肢の合計値を均等化
+    effects = normalizeChoiceEffects(choice.effects ?? {});
+
+    // 単位は減らない（等価体験モードでも現実と同様）
+    const normalizedAcademic = effects.academic ?? 0;
+
+    // 秋・冬は学業シーズン: 正規化後に academic が 0 以下なら +1 のフロアを与える
+    // （「勉強ゼロの学期」でも大学生として多少は単位が積まれる）
+    const season = getSeasonFromEventId(seasonEvent.id);
+    const studySeason = season === "autumn" || season === "winter";
+    const academicFloor = studySeason ? 1 : 0;
+    if (normalizedAcademic !== 0) {
+      effects = { ...effects, academic: Math.max(0, normalizedAcademic) };
+    } else if (studySeason) {
+      effects = { ...effects, academic: academicFloor };
+    }
+  }
+
   const next = {
     ...player,
     traits: { ...player.traits },
@@ -223,7 +255,7 @@ export function applyTimelineChoice(player, seasonEvent, choice) {
     history: [...player.history],
   };
 
-  for (const [key, delta] of Object.entries(normalizedEffects)) {
+  for (const [key, delta] of Object.entries(effects)) {
     next.traits[key] = clampTrait((next.traits[key] ?? 0) + delta);
   }
 
@@ -282,9 +314,9 @@ export function determineStoryAward(player, academicStatus, lifeArchetype) {
     return STORY_AWARDS.campus_legend_retained;
   }
   if (
-    player.storyTags.includes("空白の夏") ||
-    player.storyTags.includes("余白") ||
-    player.storyTags.includes("静かな冬")
+    player.storyTags.includes("予定少なめ") ||
+    player.storyTags.includes("休む時間") ||
+    player.storyTags.includes("連絡少なめ")
   ) {
     return STORY_AWARDS.protected_blank_space;
   }
@@ -308,7 +340,7 @@ export function determineStoryAward(player, academicStatus, lifeArchetype) {
 }
 
 export function summarizeTimelineResult(player, academicStatus, lifeArchetype, storyAward) {
-  const tagText = player.storyTags.slice(0, 5).join("、") || "目立つ肩書きなし";
+  const tagText = player.storyTags.slice(0, 5).join("、") || "特に目立つ記録なし";
   return `${player.name}は${lifeArchetype.title}として、${tagText}を残した。学業上は「${academicStatus.title}」。${storyAward.description}`;
 }
 
