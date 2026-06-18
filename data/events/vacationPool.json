@@ -97,7 +97,12 @@
     ],
     "vacationType": "spring",
     "weight": 10,
-    "polarity": "positive"
+    "polarity": "positive",
+    "condition": {
+      "excludedFlags": {
+        "housing": "family"
+      }
+    }
   },
   "spring_partner": {
     "id": "spring_partner",

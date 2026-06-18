@@ -29,7 +29,7 @@
     "choices": [
       {
         "id": "random_sns_A",
-        "label": "誘いに乗る",
+        "label": "バズを楽しむ",
         "effects": {
           "connections": 2,
           "action_power": 1
@@ -74,7 +74,7 @@
         "label": "支払って立て直す",
         "effects": {
           "money": -3,
-          "work_tolerance": 1
+          "health": -1
         },
         "badLuckDelta": 1,
         "polarity": "negative"
@@ -95,7 +95,6 @@
         "label": "参加する",
         "effects": {
           "connections": 2,
-          "romance_exp": 1,
           "health": -1
         },
         "badLuckDelta": -1,
@@ -186,7 +185,12 @@
         ],
         "outcomeTags": [
           "romance.meeting"
-        ]
+        ],
+        "condition": {
+          "excludedFlags": {
+            "has_partner": true
+          }
+        }
       },
       {
         "id": "random_gokon_B",
@@ -433,8 +437,7 @@
         "label": "今は情報だけ集める",
         "effects": {
           "intellect": 1,
-          "action_power": 1,
-          "money": 1
+          "action_power": 1
         },
         "intentTags": [
           "career",
@@ -452,5 +455,81 @@
         "studying_abroad": true
       }
     }
+  },
+  "random_drift": {
+    "id": "random_drift",
+    "title": "すれ違いの季節",
+    "description": "恋人との距離が、なんとなく開いてきた。",
+    "year": null,
+    "category": "ランダム",
+    "weight": 6,
+    "polarity": "mixed",
+    "condition": {
+      "requiredFlags": {
+        "has_partner": true
+      }
+    },
+    "choices": [
+      {
+        "id": "random_drift_A",
+        "label": "きちんと向き合って話す",
+        "effects": {},
+        "tone": "romance",
+        "polarity": "mixed",
+        "storyTags": [
+          "恋愛"
+        ],
+        "dynamicRandomChance": {
+          "formula": "romance_success",
+          "onSuccess": {
+            "romance_exp": 2,
+            "health": 1
+          },
+          "onSuccessFlags": {
+            "romance_committed": true
+          },
+          "onFailure": {
+            "health": -1
+          },
+          "onFailureFlags": {
+            "has_partner": false,
+            "breakup": true
+          }
+        },
+        "intentTags": [
+          "romance"
+        ],
+        "routeTags": [
+          "romance"
+        ],
+        "outcomeTags": [
+          "romance.commitment"
+        ]
+      },
+      {
+        "id": "random_drift_B",
+        "label": "今は自分を優先して距離を置く",
+        "effects": {
+          "time": 1,
+          "intellect": 1
+        },
+        "flagEffects": {
+          "has_partner": false,
+          "breakup": true
+        },
+        "polarity": "mixed",
+        "storyTags": [
+          "恋愛",
+          "失恋"
+        ],
+        "intentTags": [
+          "rest"
+        ],
+        "routeTags": [],
+        "outcomeTags": [
+          "romance.breakup"
+        ]
+      }
+    ]
   }
 }

@@ -228,36 +228,34 @@
         "id": "4A",
         "label": "計画的に勉強して高得点を狙う",
         "effects": {
-          "credits": 10,
+          "credits": 2,
           "intellect": 3,
           "time": -1
         },
-        "polarity": "positive"
+        "polarity": "positive",
+        "preserveEffects": true
       },
       {
         "id": "4B",
         "label": "人脈を頼って過去問を集める",
         "effects": {
-          "credits": 8,
-          "connections": 2,
-          "intellect": 2
+          "credits": 3,
+          "connections": 1,
+          "intellect": 1
         },
         "polarity": "positive",
-        "condition": {
-          "minStats": {
-            "connections": 3
-          }
-        }
+        "preserveEffects": true
       },
       {
         "id": "4C",
         "label": "一夜漬けで突破する",
         "effects": {
-          "credits": 5,
+          "credits": 1,
           "health": -2,
           "intellect": 1
         },
-        "polarity": "negative"
+        "polarity": "negative",
+        "preserveEffects": true
       }
     ]
   },
@@ -312,7 +310,12 @@
           "housing": "alone",
           "living_alone": true
         },
-        "polarity": "mixed"
+        "polarity": "mixed",
+        "condition": {
+          "excludedFlags": {
+            "housing": "alone"
+          }
+        }
       },
       {
         "id": "6C",
@@ -394,7 +397,6 @@
         "label": "友人と見て回る",
         "effects": {
           "connections": 2,
-          "romance_exp": 1,
           "health": 1
         },
         "polarity": "positive"
@@ -478,7 +480,12 @@
         "storyTags": [
           "恋愛"
         ],
-        "polarity": "mixed"
+        "polarity": "mixed",
+        "condition": {
+          "excludedFlags": {
+            "has_partner": true
+          }
+        }
       },
       {
         "id": "9B",
@@ -499,6 +506,68 @@
         },
         "polarity": "positive"
       }
+    ],
+    "conditionalVariants": [
+      {
+        "condition": {
+          "requiredFlags": {
+            "has_partner": true
+          }
+        },
+        "title": "冬の誘い（揺れる心）",
+        "description": "恋人がいるのに、気になる人からも誘われた。",
+        "choices": [
+          {
+            "id": "9_cheat",
+            "label": "気になる人とクリスマスを過ごす",
+            "effects": {},
+            "cheatAction": true,
+            "budgetMode": "failure",
+            "tone": "romance",
+            "polarity": "negative",
+            "storyTags": [
+              "恋愛",
+              "浮気"
+            ],
+            "intentTags": [
+              "romance",
+              "risk"
+            ],
+            "routeTags": [
+              "romance"
+            ],
+            "outcomeTags": [
+              "romance.cheating_risk"
+            ]
+          },
+          {
+            "id": "9_loyal",
+            "label": "恋人との時間を大切にする",
+            "effects": {
+              "romance_exp": 1,
+              "health": 1
+            },
+            "flagEffects": {
+              "romance_committed": true,
+              "cheating": false
+            },
+            "polarity": "positive",
+            "storyTags": [
+              "恋愛"
+            ],
+            "intentTags": [
+              "romance",
+              "rest"
+            ],
+            "routeTags": [
+              "romance"
+            ],
+            "outcomeTags": [
+              "romance.commitment"
+            ]
+          }
+        ]
+      }
     ]
   },
   "10": {
@@ -512,36 +581,34 @@
         "id": "10A",
         "label": "計画的に勉強して高得点を狙う",
         "effects": {
-          "credits": 10,
+          "credits": 2,
           "intellect": 3,
           "time": -1
         },
-        "polarity": "positive"
+        "polarity": "positive",
+        "preserveEffects": true
       },
       {
         "id": "10B",
         "label": "人脈を頼って過去問を集める",
         "effects": {
-          "credits": 8,
-          "connections": 2,
-          "intellect": 2
+          "credits": 3,
+          "connections": 1,
+          "intellect": 1
         },
         "polarity": "positive",
-        "condition": {
-          "minStats": {
-            "connections": 3
-          }
-        }
+        "preserveEffects": true
       },
       {
         "id": "10C",
         "label": "一夜漬けで突破する",
         "effects": {
-          "credits": 5,
+          "credits": 1,
           "health": -2,
           "intellect": 1
         },
-        "polarity": "negative"
+        "polarity": "negative",
+        "preserveEffects": true
       }
     ]
   },
@@ -699,7 +766,12 @@
         "storyTags": [
           "恋愛"
         ],
-        "polarity": "mixed"
+        "polarity": "mixed",
+        "condition": {
+          "excludedFlags": {
+            "has_partner": true
+          }
+        }
       },
       {
         "id": "14B",
@@ -719,6 +791,68 @@
           "intellect": 2
         },
         "polarity": "positive"
+      }
+    ],
+    "conditionalVariants": [
+      {
+        "condition": {
+          "requiredFlags": {
+            "has_partner": true
+          }
+        },
+        "title": "春の交流と新しい関係（揺れる心）",
+        "description": "恋人がいるのに、新しい出会いに心が動く。",
+        "choices": [
+          {
+            "id": "14_cheat",
+            "label": "新しい出会いに踏み込む",
+            "effects": {},
+            "cheatAction": true,
+            "budgetMode": "failure",
+            "tone": "romance",
+            "polarity": "negative",
+            "storyTags": [
+              "恋愛",
+              "浮気"
+            ],
+            "intentTags": [
+              "romance",
+              "risk"
+            ],
+            "routeTags": [
+              "romance"
+            ],
+            "outcomeTags": [
+              "romance.cheating_risk"
+            ]
+          },
+          {
+            "id": "14_loyal",
+            "label": "恋人との時間を大切にする",
+            "effects": {
+              "romance_exp": 1,
+              "health": 1
+            },
+            "flagEffects": {
+              "romance_committed": true,
+              "cheating": false
+            },
+            "polarity": "positive",
+            "storyTags": [
+              "恋愛"
+            ],
+            "intentTags": [
+              "romance",
+              "rest"
+            ],
+            "routeTags": [
+              "romance"
+            ],
+            "outcomeTags": [
+              "romance.commitment"
+            ]
+          }
+        ]
       }
     ]
   },
@@ -749,36 +883,34 @@
         "id": "16A",
         "label": "計画的に勉強して高得点を狙う",
         "effects": {
-          "credits": 11,
+          "credits": 2,
           "intellect": 3,
           "time": -1
         },
-        "polarity": "positive"
+        "polarity": "positive",
+        "preserveEffects": true
       },
       {
         "id": "16B",
         "label": "人脈を頼って過去問を集める",
         "effects": {
-          "credits": 9,
-          "connections": 2,
-          "intellect": 2
+          "credits": 3,
+          "connections": 1,
+          "intellect": 1
         },
         "polarity": "positive",
-        "condition": {
-          "minStats": {
-            "connections": 3
-          }
-        }
+        "preserveEffects": true
       },
       {
         "id": "16C",
         "label": "一夜漬けで突破する",
         "effects": {
-          "credits": 6,
+          "credits": 1,
           "health": -2,
           "intellect": 1
         },
-        "polarity": "negative"
+        "polarity": "negative",
+        "preserveEffects": true
       }
     ],
     "conditionalVariants": [
@@ -893,7 +1025,12 @@
         "storyTags": [
           "恋愛"
         ],
-        "polarity": "mixed"
+        "polarity": "mixed",
+        "condition": {
+          "excludedFlags": {
+            "has_partner": true
+          }
+        }
       },
       {
         "id": "19C",
@@ -904,6 +1041,68 @@
           "time": -1
         },
         "polarity": "positive"
+      }
+    ],
+    "conditionalVariants": [
+      {
+        "condition": {
+          "requiredFlags": {
+            "has_partner": true
+          }
+        },
+        "title": "学園祭・他大学交流（揺れる心）",
+        "description": "恋人がいるのに、気になる相手と二人で回りたくなる。",
+        "choices": [
+          {
+            "id": "19_cheat",
+            "label": "気になる相手と学園祭を回る",
+            "effects": {},
+            "cheatAction": true,
+            "budgetMode": "failure",
+            "tone": "romance",
+            "polarity": "negative",
+            "storyTags": [
+              "恋愛",
+              "浮気"
+            ],
+            "intentTags": [
+              "romance",
+              "risk"
+            ],
+            "routeTags": [
+              "romance"
+            ],
+            "outcomeTags": [
+              "romance.cheating_risk"
+            ]
+          },
+          {
+            "id": "19_loyal",
+            "label": "恋人との時間を大切にする",
+            "effects": {
+              "romance_exp": 1,
+              "health": 1
+            },
+            "flagEffects": {
+              "romance_committed": true,
+              "cheating": false
+            },
+            "polarity": "positive",
+            "storyTags": [
+              "恋愛"
+            ],
+            "intentTags": [
+              "romance",
+              "rest"
+            ],
+            "routeTags": [
+              "romance"
+            ],
+            "outcomeTags": [
+              "romance.commitment"
+            ]
+          }
+        ]
       }
     ]
   },
@@ -984,7 +1183,12 @@
         "storyTags": [
           "恋愛"
         ],
-        "polarity": "mixed"
+        "polarity": "mixed",
+        "condition": {
+          "excludedFlags": {
+            "has_partner": true
+          }
+        }
       },
       {
         "id": "21C",
@@ -994,6 +1198,68 @@
           "health": 1
         },
         "polarity": "positive"
+      }
+    ],
+    "conditionalVariants": [
+      {
+        "condition": {
+          "requiredFlags": {
+            "has_partner": true
+          }
+        },
+        "title": "冬のスランプ（揺れる心）",
+        "description": "スランプで心が弱り、恋人以外の優しさに揺れる。",
+        "choices": [
+          {
+            "id": "21_cheat",
+            "label": "弱った心を他の人に甘える",
+            "effects": {},
+            "cheatAction": true,
+            "budgetMode": "failure",
+            "tone": "romance",
+            "polarity": "negative",
+            "storyTags": [
+              "恋愛",
+              "浮気"
+            ],
+            "intentTags": [
+              "romance",
+              "risk"
+            ],
+            "routeTags": [
+              "romance"
+            ],
+            "outcomeTags": [
+              "romance.cheating_risk"
+            ]
+          },
+          {
+            "id": "21_loyal",
+            "label": "恋人との時間を大切にする",
+            "effects": {
+              "romance_exp": 1,
+              "health": 1
+            },
+            "flagEffects": {
+              "romance_committed": true,
+              "cheating": false
+            },
+            "polarity": "positive",
+            "storyTags": [
+              "恋愛"
+            ],
+            "intentTags": [
+              "romance",
+              "rest"
+            ],
+            "routeTags": [
+              "romance"
+            ],
+            "outcomeTags": [
+              "romance.commitment"
+            ]
+          }
+        ]
       }
     ]
   },
@@ -1008,36 +1274,34 @@
         "id": "22A",
         "label": "計画的に勉強して高得点を狙う",
         "effects": {
-          "credits": 11,
+          "credits": 2,
           "intellect": 3,
           "time": -1
         },
-        "polarity": "positive"
+        "polarity": "positive",
+        "preserveEffects": true
       },
       {
         "id": "22B",
         "label": "人脈を頼って過去問を集める",
         "effects": {
-          "credits": 9,
-          "connections": 2,
-          "intellect": 2
+          "credits": 3,
+          "connections": 1,
+          "intellect": 1
         },
         "polarity": "positive",
-        "condition": {
-          "minStats": {
-            "connections": 3
-          }
-        }
+        "preserveEffects": true
       },
       {
         "id": "22C",
         "label": "一夜漬けで突破する",
         "effects": {
-          "credits": 6,
+          "credits": 1,
           "health": -2,
           "intellect": 1
         },
-        "polarity": "negative"
+        "polarity": "negative",
+        "preserveEffects": true
       }
     ]
   },
@@ -1235,36 +1499,34 @@
         "id": "28A",
         "label": "計画的に勉強して高得点を狙う",
         "effects": {
-          "credits": 12,
+          "credits": 2,
           "intellect": 3,
           "time": -1
         },
-        "polarity": "positive"
+        "polarity": "positive",
+        "preserveEffects": true
       },
       {
         "id": "28B",
         "label": "人脈を頼って過去問を集める",
         "effects": {
-          "credits": 10,
-          "connections": 2,
-          "intellect": 2
+          "credits": 3,
+          "connections": 1,
+          "intellect": 1
         },
         "polarity": "positive",
-        "condition": {
-          "minStats": {
-            "connections": 3
-          }
-        }
+        "preserveEffects": true
       },
       {
         "id": "28C",
         "label": "一夜漬けで突破する",
         "effects": {
-          "credits": 7,
+          "credits": 1,
           "health": -2,
           "intellect": 1
         },
-        "polarity": "negative"
+        "polarity": "negative",
+        "preserveEffects": true
       }
     ]
   },
@@ -1510,36 +1772,34 @@
         "id": "34A",
         "label": "計画的に勉強して高得点を狙う",
         "effects": {
-          "credits": 12,
+          "credits": 2,
           "intellect": 3,
           "time": -1
         },
-        "polarity": "positive"
+        "polarity": "positive",
+        "preserveEffects": true
       },
       {
         "id": "34B",
         "label": "人脈を頼って過去問を集める",
         "effects": {
-          "credits": 10,
-          "connections": 2,
-          "intellect": 2
+          "credits": 3,
+          "connections": 1,
+          "intellect": 1
         },
         "polarity": "positive",
-        "condition": {
-          "minStats": {
-            "connections": 3
-          }
-        }
+        "preserveEffects": true
       },
       {
         "id": "34C",
         "label": "一夜漬けで突破する",
         "effects": {
-          "credits": 7,
+          "credits": 1,
           "health": -2,
           "intellect": 1
         },
-        "polarity": "negative"
+        "polarity": "negative",
+        "preserveEffects": true
       }
     ]
   },
@@ -2601,7 +2861,12 @@
         ],
         "outcomeTags": [
           "romance.confession"
-        ]
+        ],
+        "condition": {
+          "excludedFlags": {
+            "has_partner": true
+          }
+        }
       }
     ]
   },
@@ -2693,36 +2958,34 @@
         "id": "46A",
         "label": "計画的に勉強して高得点を狙う",
         "effects": {
-          "credits": 12,
+          "credits": 2,
           "intellect": 3,
           "time": -1
         },
-        "polarity": "positive"
+        "polarity": "positive",
+        "preserveEffects": true
       },
       {
         "id": "46B",
         "label": "人脈を頼って過去問を集める",
         "effects": {
-          "credits": 10,
-          "connections": 2,
-          "intellect": 2
+          "credits": 3,
+          "connections": 1,
+          "intellect": 1
         },
         "polarity": "positive",
-        "condition": {
-          "minStats": {
-            "connections": 3
-          }
-        }
+        "preserveEffects": true
       },
       {
         "id": "46C",
         "label": "一夜漬けで突破する",
         "effects": {
-          "credits": 7,
+          "credits": 1,
           "health": -2,
           "intellect": 1
         },
-        "polarity": "negative"
+        "polarity": "negative",
+        "preserveEffects": true
       }
     ]
   },

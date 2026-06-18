@@ -22,7 +22,7 @@
           "time": 1,
           "money": -2,
           "credits": 1,
-          "health": 1,
+          "health": -1,
           "intellect": 1,
           "work_tolerance": 1
         }

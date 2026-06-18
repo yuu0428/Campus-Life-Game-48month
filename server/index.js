@@ -99,6 +99,9 @@ const FINAL_CREDIT_AUDIT_FLOOR = 120;
 const FINAL_CREDIT_AUDIT_CHANCE = 0.35;
 const CREDIT_RECOVERY_EVENT_MIN_ROUND = 14;
 const CREDIT_RECOVERY_EVENT_GAP = 18;
+// Natural (non-cheating) breakup triggers.
+const BREAKUP_MONEY_STREAK = 3;   // money < 0 for this many consecutive rounds
+const BREAKUP_CREDIT_GAP = 26;    // credits this far behind the expected pace
 const YEAR_RECAP_ROUNDS = new Set([12, 24, 36]);
 const RECOVERY_COOLDOWN_ROUNDS = 3;
 const RECOVERY_MAX_PER_STAT_PER_YEAR = 1;
@@ -427,6 +430,7 @@ function createPlayer(clientId, name, faculty) {
     resources: defaultResources(),
     experience: defaultExperience(),
     experienceProgress: {},
+    negativeMoneyStreak: 0,
     flags: defaultFlags(),
     position: "1",
     lastRoll: undefined,
@@ -968,6 +972,41 @@ function applyPerRoundFlagEffects(player) {
   }
   if (player.faculty === "science") {
     gainExperienceFraction(player, "intellect", 0.3);
+  }
+}
+
+// Non-cheating breakup: the partner leaves due to life falling apart.
+// Mirrors the flag bookkeeping in applyFlagEffects (ex_partner_count++, breakup).
+function triggerNaturalBreakup(player, reason) {
+  if (!player.flags.has_partner) return false;
+  player.flags.ex_partner_count = Number(player.flags.ex_partner_count ?? 0) + 1;
+  player.flags.has_partner = false;
+  player.flags.cheating = false;
+  player.flags.breakup = true;
+  if (!player.flagHistory.includes("breakup")) player.flagHistory.push("breakup");
+  broadcast({ type: "system", message: `💔 ${player.name} は${reason}、恋人と別れてしまいました…` });
+  return true;
+}
+
+// Per-round natural-breakup checks (money trouble streak / severe credit shortfall).
+function applyRelationshipStrain(player, round) {
+  if (player.resources.money < 0) {
+    player.negativeMoneyStreak = (player.negativeMoneyStreak ?? 0) + 1;
+  } else {
+    player.negativeMoneyStreak = 0;
+  }
+  if (!player.flags.has_partner) return;
+  if ((player.negativeMoneyStreak ?? 0) >= BREAKUP_MONEY_STREAK) {
+    if (triggerNaturalBreakup(player, "金欠続きで余裕がなくなり")) {
+      player.negativeMoneyStreak = 0;
+    }
+    return;
+  }
+  if (
+    round >= CREDIT_RECOVERY_EVENT_MIN_ROUND
+    && player.resources.credits < expectedCreditsForRound(round) - BREAKUP_CREDIT_GAP
+  ) {
+    triggerNaturalBreakup(player, "単位が大幅に足りず将来が見えなくなり");
   }
 }
 
@@ -2182,6 +2221,7 @@ function endRound() {
       applyPerRoundFlagEffects(player);
       tickRecoveryCooldowns(player);
     }
+    applyRelationshipStrain(player, finishedRound);
   }
 
   if (YEAR_RECAP_ROUNDS.has(finishedRound)) {
@@ -2361,6 +2401,7 @@ wss.on("connection", (socket) => {
         player.resources = defaultResources();
         player.experience = defaultExperience();
         player.experienceProgress = {};
+        player.negativeMoneyStreak = 0;
         player.flags = defaultFlags();
         player.position = "1";
         player.lastRoll = undefined;
@@ -2415,6 +2456,7 @@ wss.on("connection", (socket) => {
         player.resources = defaultResources();
         player.experience = defaultExperience();
         player.experienceProgress = {};
+        player.negativeMoneyStreak = 0;
         player.flags = defaultFlags();
         player.position = "1";
         player.lastRoll = undefined;
