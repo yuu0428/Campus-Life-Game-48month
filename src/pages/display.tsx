@@ -1302,6 +1302,13 @@ export function DisplayPage() {
     wsRef.current.send(JSON.stringify({ type: "display_start_game" } satisfies ClientMessage));
   }, []);
 
+  const sendDisplaySkipGroupResult = useCallback(() => {
+    if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
+      return;
+    }
+    wsRef.current.send(JSON.stringify({ type: "display_skip_group_result" } satisfies ClientMessage));
+  }, []);
+
   // WebSocket connection
   useEffect(() => {
     if (!targetUrl) {
@@ -1805,7 +1812,14 @@ export function DisplayPage() {
             ) : null}
 
             {isGroupResultOverlay ? (
-              <TurnGroupResultPanel results={lastTurnGroupResults} />
+              <>
+                <TurnGroupResultPanel results={lastTurnGroupResults} />
+                <div className="event-card__skip">
+                  <button type="button" className="display-skip-button" onClick={sendDisplaySkipGroupResult}>
+                    次へ進む（スキップ）
+                  </button>
+                </div>
+              </>
             ) : hasDisplayFallbackControls ? (
               <div className="display-fallback-grid">
                 {activeChoicePanels.map((panel, index) => (

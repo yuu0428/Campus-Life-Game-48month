@@ -88,7 +88,7 @@ const EXPERIENCE_RANGES = {
 const BOARD_FINAL_ROUND = 48;
 const TURN_GROUP_SIZE = 2;
 const TURN_MODES = new Set(["pair", "all"]);
-const TURN_GROUP_RESULT_MS = Number(process.env.TURN_GROUP_RESULT_MS ?? 5000);
+const TURN_GROUP_RESULT_MS = Number(process.env.TURN_GROUP_RESULT_MS ?? 3000);
 const SEMESTER_CREDIT_BONUS = 10;
 const CREDIT_AUDIT_ROUNDS = new Set([6, 12, 18, 24, 30, 36, 42, 48]);
 const CREDIT_AUDIT_GRACE_GAP = 3;
@@ -1983,15 +1983,47 @@ function tryCompleteBoardTurnGroup() {
   state.pendingRecoveryOriginalEvents = {};
   broadcastState();
 
-  setTimeout(() => {
-    if (state.mode !== "life_map" && state.phase === "animating") {
-      if (completedYearAnchorRound !== null) {
-        startNextBoardRound(completedYearAnchorRound);
-      } else {
-        prepareNextBoardTurnGroup();
-      }
+  scheduleGroupResultAdvance(completedYearAnchorRound);
+  return true;
+}
+
+// The comparison ("ふたりの選択") screen is shown while phase === "animating".
+// It normally auto-advances after TURN_GROUP_RESULT_MS, but the display can skip
+// the wait. Both paths run advanceAfterTurnGroup, guarded by the phase check so
+// they can never double-advance.
+let groupResultTimer = null;
+let pendingGroupResultAnchorRound = null;
+
+function clearGroupResultTimer() {
+  if (groupResultTimer) {
+    clearTimeout(groupResultTimer);
+    groupResultTimer = null;
+  }
+}
+
+function advanceAfterTurnGroup(completedYearAnchorRound) {
+  if (state.mode !== "life_map" && state.phase === "animating") {
+    if (completedYearAnchorRound !== null) {
+      startNextBoardRound(completedYearAnchorRound);
+    } else {
+      prepareNextBoardTurnGroup();
     }
+  }
+}
+
+function scheduleGroupResultAdvance(completedYearAnchorRound) {
+  clearGroupResultTimer();
+  pendingGroupResultAnchorRound = completedYearAnchorRound;
+  groupResultTimer = setTimeout(() => {
+    groupResultTimer = null;
+    advanceAfterTurnGroup(completedYearAnchorRound);
   }, TURN_GROUP_RESULT_MS);
+}
+
+function skipGroupResultAdvance() {
+  if (state.mode === "life_map" || state.phase !== "animating") return false;
+  clearGroupResultTimer();
+  advanceAfterTurnGroup(pendingGroupResultAnchorRound);
   return true;
 }
 
@@ -2517,6 +2549,12 @@ wss.on("connection", (socket) => {
       const targetPlayer = getPlayerById(payload.playerId);
       if (!targetPlayer) return;
       submitChoiceForPlayer(targetPlayer, payload.choiceId, "display");
+      return;
+    }
+
+    if (payload.type === "display_skip_group_result") {
+      if (!["display", "host"].includes(client.role)) return;
+      skipGroupResultAdvance();
       return;
     }
 

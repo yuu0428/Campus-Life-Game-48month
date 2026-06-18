@@ -2652,6 +2652,33 @@ button.ghost:hover:not(:disabled) {
   margin-top: 10px;
 }
 
+.event-card__skip {
+  display: flex;
+  justify-content: center;
+  margin-top: 18px;
+}
+
+.display-skip-button {
+  padding: 10px 26px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: background 0.15s ease, transform 0.15s ease;
+}
+
+.display-skip-button:hover {
+  background: rgba(255, 255, 255, 0.22);
+  transform: translateY(-1px);
+}
+
+.display-skip-button:active {
+  transform: translateY(0);
+}
+
 .display-fallback-player__empty {
   padding: 16px;
   border-radius: 10px;

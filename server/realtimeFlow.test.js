@@ -16,7 +16,7 @@ function delay(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-async function startServer(t) {
+async function startServer(t, { turnGroupResultMs = TURN_GROUP_RESULT_MS } = {}) {
   const port = randomPort();
   const child = spawn(process.execPath, ["server/index.js"], {
     cwd: process.cwd(),
@@ -24,7 +24,7 @@ async function startServer(t) {
       ...process.env,
       PORT: String(port),
       STATIC_DIR: "__missing_static_for_tests__",
-      TURN_GROUP_RESULT_MS: String(TURN_GROUP_RESULT_MS),
+      TURN_GROUP_RESULT_MS: String(turnGroupResultMs),
     },
     stdio: ["ignore", "pipe", "pipe"],
   });
@@ -503,6 +503,42 @@ test("board mode advances in two-player turn groups", async (t) => {
       && message.state.activeTurnPlayerIds.includes(sora.clientId),
   );
   assert.deepEqual(secondGroup.state.completedTurns.sort(), [aoi.clientId, ren.clientId].sort());
+});
+
+test("display can skip the pair result screen instead of waiting", async (t) => {
+  // Long auto-advance window: if the skip did not work the turn would still be
+  // on the comparison screen well past the test's own 2.5s message timeout, so
+  // reaching "rolling" quickly proves the skip bypassed the wait.
+  const { port } = await startServer(t, { turnGroupResultMs: 60000 });
+  const host = await connectClient(t, port, { role: "host", name: "Host" });
+  const aoi = await connectClient(t, port, { role: "controller", name: "Aoi" });
+  const ren = await connectClient(t, port, { role: "controller", name: "Ren" });
+
+  await startBoardGame(host);
+  await host.waitFor(
+    (message) => message.type === "state"
+      && message.state.phase === "rolling"
+      && message.state.activeTurnPlayerIds?.length === 2,
+  );
+
+  aoi.send({ type: "player_roll" });
+  const aoiEvent = await aoi.waitFor((message) => message.type === "show_event");
+  const renEvent = await ren.waitFor((message) => message.type === "show_event");
+
+  aoi.send({ type: "player_choice", choiceId: aoiEvent.availableChoiceIds[0] });
+  ren.send({ type: "player_choice", choiceId: renEvent.availableChoiceIds[0] });
+
+  await host.waitFor(
+    (message) => message.type === "state"
+      && message.state.phase === "animating"
+      && message.state.lastTurnGroupResults?.length === 2,
+  );
+
+  host.send({ type: "display_skip_group_result" });
+  const advanced = await host.waitFor(
+    (message) => message.type === "state" && message.state.phase === "rolling",
+  );
+  assert.equal(advanced.state.phase, "rolling");
 });
 
 test("board mode uses a solo final group for odd player counts", async (t) => {

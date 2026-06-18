@@ -597,6 +597,8 @@ export type ClientMessage =
   | { type: "host_player_choice"; playerId: string; choiceId: string }
   | { type: "display_player_choice"; playerId: string; choiceId: string }
   | { type: "display_start_game" }
+  /** Skip the comparison result screen wait and advance immediately */
+  | { type: "display_skip_group_result" }
   | { type: "continue_year_recap" }
   /** Simultaneous mode: skip not-yet-chosen players (master feature) */
   | { type: "host_force_advance_choices" }
