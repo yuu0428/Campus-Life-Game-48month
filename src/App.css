@@ -2644,6 +2644,14 @@ button.ghost:hover:not(:disabled) {
   font-weight: 900;
 }
 
+.display-fallback-player__effects,
+.turn-result-card__effects {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+
 .display-fallback-player__empty {
   padding: 16px;
   border-radius: 10px;

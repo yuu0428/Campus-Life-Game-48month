@@ -439,6 +439,7 @@ type ActiveChoicePanel = {
   event: GameEvent | null;
   availableChoiceIds: string[];
   selectedChoiceId?: string;
+  result?: ChoiceResult;
 };
 
 const MONTH_SEASON_META: Record<Season, { label: string; cue: string; mark: string }> = {
@@ -505,6 +506,11 @@ function TurnGroupResultPanel({ results }: { results: ChoiceResult[] }) {
           <div key={`${result.playerId}-${result.choiceId}`} className="turn-result-card">
             <div className="turn-result-card__player">{result.playerName}</div>
             <div className="turn-result-card__choice">{result.choiceLabel}</div>
+            {effectBadges(result.effects).length > 0 && (
+              <div className="turn-result-card__effects">
+                {effectBadges(result.effects)}
+              </div>
+            )}
             <div className="turn-result-card__meta">
               {result.tone && <span>{result.tone}</span>}
               <span>{submissionLabel(result.submittedBy)}</span>
@@ -528,7 +534,7 @@ function DisplayFallbackChoicePanel({
   index: number;
   onSelect: (playerId: string, choiceId: string) => void;
 }) {
-  const { player, event, availableChoiceIds, selectedChoiceId } = panel;
+  const { player, event, availableChoiceIds, selectedChoiceId, result } = panel;
   const selectedChoice = event?.choices.find((choice) => choice.id === selectedChoiceId);
 
   return (
@@ -574,6 +580,11 @@ function DisplayFallbackChoicePanel({
               );
             })}
           </div>
+          {result && effectBadges(result.effects).length > 0 && (
+            <div className="display-fallback-player__effects">
+              {effectBadges(result.effects)}
+            </div>
+          )}
         </>
       ) : (
         <div className="display-fallback-player__empty">
@@ -1199,11 +1210,15 @@ export function DisplayPage() {
   const activeTurnPendingCount = activeTurnPlayers.filter((player) =>
     Boolean(pendingTurnChoices[player.id]),
   ).length;
-  const lastTurnGroupResults = state.lastTurnGroupResults?.length
-    ? state.lastTurnGroupResults
-    : state.lastChoiceResult
-      ? [state.lastChoiceResult]
-      : [];
+  const lastTurnGroupResults = useMemo(
+    () =>
+      state.lastTurnGroupResults?.length
+        ? state.lastTurnGroupResults
+        : state.lastChoiceResult
+          ? [state.lastChoiceResult]
+          : [],
+    [state.lastChoiceResult, state.lastTurnGroupResults],
+  );
   const activeChoicePanels = useMemo<ActiveChoicePanel[]>(
     () =>
       activeTurnPlayers.map((player) => {
@@ -1221,12 +1236,14 @@ export function DisplayPage() {
           event: playerEvent,
           availableChoiceIds,
           selectedChoiceId: pendingTurnChoices[player.id],
+          result: lastTurnGroupResults.find((result) => result.playerId === player.id),
         };
       }),
     [
       activeTurnPlayers,
       eventAvailableIds,
       eventPlayerId,
+      lastTurnGroupResults,
       pendingTurnChoices,
       showEvent,
       state.activeTurnEvents,
@@ -1318,6 +1335,17 @@ export function DisplayPage() {
             setEventAvailableIds(message.state.availableChoiceIds);
             setEventFading(false);
           }
+          if (
+            stateRef.current.mode !== "life_map"
+            && stateRef.current.phase === "animating"
+            && message.state.phase === "rolling"
+          ) {
+            setShowEvent(null);
+            setChoiceResult(null);
+            setEventPlayerId(null);
+            setEventAvailableIds([]);
+            setEventFading(false);
+          }
           stateRef.current = message.state;
           setState(message.state);
           break;
@@ -1347,11 +1375,6 @@ export function DisplayPage() {
         case "choice_result":
           playSfx("choice_result");
           setChoiceResult(message.result);
-          if (stateRef.current.mode !== "life_map") {
-            setTimeout(() => {
-              fadeOutEvent();
-            }, 3000);
-          }
           break;
 
         case "all_choices_revealed":

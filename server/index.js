@@ -28,6 +28,7 @@ import {
   mergeStatEffects,
   normalizeChoiceEffectOutcome,
 } from "./effectBudget.js";
+import { accumulateFraction } from "./statProgress.js";
 import {
   INTENT_TAGS,
   deriveIntentTagsForChoice,
@@ -87,7 +88,7 @@ const EXPERIENCE_RANGES = {
 const BOARD_FINAL_ROUND = 48;
 const TURN_GROUP_SIZE = 2;
 const TURN_MODES = new Set(["pair", "all"]);
-const TURN_GROUP_RESULT_MS = Number(process.env.TURN_GROUP_RESULT_MS ?? 1500);
+const TURN_GROUP_RESULT_MS = Number(process.env.TURN_GROUP_RESULT_MS ?? 5000);
 const SEMESTER_CREDIT_BONUS = 10;
 const CREDIT_AUDIT_ROUNDS = new Set([6, 12, 18, 24, 30, 36, 42, 48]);
 const CREDIT_AUDIT_GRACE_GAP = 3;
@@ -132,12 +133,24 @@ const PUBLIC_LIFE_MAP_SQUARES = getPublicLifeMapSquares(LIFE_MAP);
 
 function clampResource(key, value) {
   const r = RESOURCE_RANGES[key];
-  return Math.max(r.min, Math.min(r.max, value));
+  return Math.max(r.min, Math.min(r.max, Math.round(value)));
 }
 
 function clampExperience(key, value) {
   const r = EXPERIENCE_RANGES[key];
-  return Math.max(r.min, Math.min(r.max, value));
+  return Math.max(r.min, Math.min(r.max, Math.round(value)));
+}
+
+// Slow-growth bonuses (living alone, faculty perks) add fractional amounts.
+// Accumulate them in a hidden ledger and only ever apply whole points, so the
+// visible stat stays an integer (issue #2: 行動力 must never become 6.3).
+function gainExperienceFraction(player, key, amount) {
+  if (!player.experienceProgress) player.experienceProgress = {};
+  const { whole, remainder } = accumulateFraction(player.experienceProgress[key] ?? 0, amount);
+  player.experienceProgress[key] = remainder;
+  if (whole !== 0) {
+    player.experience[key] = clampExperience(key, player.experience[key] + whole);
+  }
 }
 
 function stableUnitInterval(input) {
@@ -413,6 +426,7 @@ function createPlayer(clientId, name, faculty) {
     faculty,
     resources: defaultResources(),
     experience: defaultExperience(),
+    experienceProgress: {},
     flags: defaultFlags(),
     position: "1",
     lastRoll: undefined,
@@ -939,10 +953,7 @@ function applyPerRoundFlagEffects(player) {
 
   if (player.flags.living_alone) {
     player.resources.money = clampResource("money", player.resources.money - 1);
-    player.experience.action_power = clampExperience(
-      "action_power",
-      player.experience.action_power + 0.3,
-    );
+    gainExperienceFraction(player, "action_power", 0.3);
   }
   if (player.flags.has_partner) {
     player.resources.time = clampResource("time", player.resources.time - 1);
@@ -953,10 +964,10 @@ function applyPerRoundFlagEffects(player) {
   }
   if (player.faculty === "medical") {
     player.resources.health = clampResource("health", player.resources.health - 1);
-    player.experience.intellect = clampExperience("intellect", player.experience.intellect + 0.5);
+    gainExperienceFraction(player, "intellect", 0.5);
   }
   if (player.faculty === "science") {
-    player.experience.intellect = clampExperience("intellect", player.experience.intellect + 0.3);
+    gainExperienceFraction(player, "intellect", 0.3);
   }
 }
 
@@ -2317,6 +2328,7 @@ wss.on("connection", (socket) => {
       for (const player of state.players) {
         player.resources = defaultResources();
         player.experience = defaultExperience();
+        player.experienceProgress = {};
         player.flags = defaultFlags();
         player.position = "1";
         player.lastRoll = undefined;
@@ -2370,6 +2382,7 @@ wss.on("connection", (socket) => {
       for (const player of state.players) {
         player.resources = defaultResources();
         player.experience = defaultExperience();
+        player.experienceProgress = {};
         player.flags = defaultFlags();
         player.position = "1";
         player.lastRoll = undefined;
