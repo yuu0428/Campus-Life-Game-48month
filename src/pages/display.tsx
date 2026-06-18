@@ -492,6 +492,29 @@ function submissionLabel(submittedBy?: ChoiceResult["submittedBy"]) {
   return "本人選択";
 }
 
+// Derive a loud romance/cheating "moment" from a choice result so the shared
+// display celebrates (or roasts) what just happened to someone's love life.
+function romanceMoment(result: ChoiceResult): { icon: string; text: string; tone: string } | null {
+  if (result.randomOutcome === "cheat_exposed") return { icon: "🔥", text: "浮気がバレた！", tone: "alert" };
+  if (result.randomOutcome === "cheat_hidden") return { icon: "🤫", text: "浮気を隠し通した…", tone: "sneaky" };
+  const fe = result.flagEffects ?? {};
+  if (fe.has_partner === true) return { icon: "💕", text: "恋人ができた！", tone: "joy" };
+  if (fe.has_partner === false && fe.breakup === true) return { icon: "💔", text: "失恋…", tone: "sad" };
+  if (fe.romance_committed === true) return { icon: "💞", text: "恋人との絆を深めた", tone: "warm" };
+  return null;
+}
+
+function RomanceMomentBadge({ result }: { result: ChoiceResult }) {
+  const moment = romanceMoment(result);
+  if (!moment) return null;
+  return (
+    <div className={`romance-moment romance-moment--${moment.tone}`}>
+      <span className="romance-moment__icon">{moment.icon}</span>
+      <span className="romance-moment__text">{moment.text}</span>
+    </div>
+  );
+}
+
 function TurnGroupResultPanel({ results }: { results: ChoiceResult[] }) {
   if (results.length === 0) return null;
 
@@ -505,6 +528,7 @@ function TurnGroupResultPanel({ results }: { results: ChoiceResult[] }) {
           <div key={`${result.playerId}-${result.choiceId}`} className="turn-result-card">
             <div className="turn-result-card__player">{result.playerName}</div>
             <div className="turn-result-card__choice">{result.choiceLabel}</div>
+            <RomanceMomentBadge result={result} />
             {effectBadges(result.effects).length > 0 && (
               <div className="turn-result-card__effects">
                 {effectBadges(result.effects)}

@@ -39,6 +39,17 @@ import {
   defaultGameState,
 } from "../domain/gameShared";
 
+// Loud romance/cheating moment for the player's own screen.
+function romanceMoment(result: ChoiceResult): { icon: string; text: string; color: string } | null {
+  if (result.randomOutcome === "cheat_exposed") return { icon: "🔥", text: "浮気がバレた！", color: "#ff7043" };
+  if (result.randomOutcome === "cheat_hidden") return { icon: "🤫", text: "浮気を隠し通した…", color: "#c8b88a" };
+  const fe = result.flagEffects ?? {};
+  if (fe.has_partner === true) return { icon: "💕", text: "恋人ができた！", color: "#ff6fae" };
+  if (fe.has_partner === false && fe.breakup === true) return { icon: "💔", text: "失恋…", color: "#8aa0e0" };
+  if (fe.romance_committed === true) return { icon: "💞", text: "恋人との絆を深めた", color: "#ff8cb4" };
+  return null;
+}
+
 // ─── Flag display helpers ────────────────────────────────────────
 const FLAG_DISPLAY: Record<string, { emoji: string; label: string }> = {
   living_alone: { emoji: "\u{1F3E0}", label: "\u4E00\u4EBA\u66AE\u3089\u3057" },
@@ -1408,6 +1419,14 @@ export function ControllerPlayPage() {
       <div style={S.card}>
         {renderTurnGroupSummary()}
         <div style={{ textAlign: "center", padding: "20px 0" }}>
+          {(() => {
+            const moment = romanceMoment(activeChoiceResult);
+            return moment ? (
+              <div style={{ fontSize: 22, fontWeight: 900, color: moment.color, marginBottom: 14 }}>
+                {moment.icon} {moment.text}
+              </div>
+            ) : null;
+          })()}
           <div style={{ fontSize: 16, fontWeight: 600, marginBottom: 16 }}>
             「{activeChoiceResult.choiceLabel}」を選択
           </div>

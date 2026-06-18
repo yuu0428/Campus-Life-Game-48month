@@ -2651,6 +2651,58 @@ button.ghost:hover:not(:disabled) {
   margin-top: 10px;
 }
 
+/* ── 恋愛/浮気モーメント演出 ──────────────────────────────────── */
+.romance-moment {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 10px 0;
+  padding: 8px 14px;
+  border-radius: 12px;
+  font-weight: 900;
+  font-size: 17px;
+  animation: romance-pop 0.5s cubic-bezier(0.2, 1.4, 0.4, 1) both;
+}
+
+.romance-moment__icon { font-size: 22px; }
+
+.romance-moment--joy {
+  background: linear-gradient(100deg, rgba(255, 105, 180, 0.28), rgba(255, 175, 205, 0.18));
+  border: 1px solid rgba(255, 105, 180, 0.6);
+  color: #ffd9ec;
+}
+.romance-moment--warm {
+  background: rgba(255, 140, 180, 0.16);
+  border: 1px solid rgba(255, 140, 180, 0.5);
+  color: #ffdcea;
+}
+.romance-moment--sad {
+  background: rgba(110, 130, 200, 0.18);
+  border: 1px solid rgba(110, 130, 200, 0.5);
+  color: #d6def7;
+}
+.romance-moment--alert {
+  background: linear-gradient(100deg, rgba(255, 90, 60, 0.32), rgba(255, 160, 40, 0.22));
+  border: 1px solid rgba(255, 110, 60, 0.7);
+  color: #ffe3cf;
+  animation: romance-pop 0.5s cubic-bezier(0.2, 1.4, 0.4, 1) both, romance-shake 0.5s 0.4s ease-in-out;
+}
+.romance-moment--sneaky {
+  background: rgba(120, 110, 90, 0.2);
+  border: 1px dashed rgba(220, 200, 150, 0.55);
+  color: #ece0c2;
+}
+
+@keyframes romance-pop {
+  from { transform: scale(0.6); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+@keyframes romance-shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-4px); }
+  75% { transform: translateX(4px); }
+}
+
 /* ── 司会者モニター ───────────────────────────────────────────── */
 .host-monitor__card--alert {
   border-color: color-mix(in srgb, var(--year-4, #e0566a) 55%, transparent);
