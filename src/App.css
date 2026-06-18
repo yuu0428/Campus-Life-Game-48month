@@ -2644,7 +2644,6 @@ button.ghost:hover:not(:disabled) {
   font-weight: 900;
 }
 
-.display-fallback-player__effects,
 .turn-result-card__effects {
   display: flex;
   flex-wrap: wrap;

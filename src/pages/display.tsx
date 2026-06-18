@@ -439,7 +439,6 @@ type ActiveChoicePanel = {
   event: GameEvent | null;
   availableChoiceIds: string[];
   selectedChoiceId?: string;
-  result?: ChoiceResult;
 };
 
 const MONTH_SEASON_META: Record<Season, { label: string; cue: string; mark: string }> = {
@@ -534,7 +533,7 @@ function DisplayFallbackChoicePanel({
   index: number;
   onSelect: (playerId: string, choiceId: string) => void;
 }) {
-  const { player, event, availableChoiceIds, selectedChoiceId, result } = panel;
+  const { player, event, availableChoiceIds, selectedChoiceId } = panel;
   const selectedChoice = event?.choices.find((choice) => choice.id === selectedChoiceId);
 
   return (
@@ -580,11 +579,6 @@ function DisplayFallbackChoicePanel({
               );
             })}
           </div>
-          {result && effectBadges(result.effects).length > 0 && (
-            <div className="display-fallback-player__effects">
-              {effectBadges(result.effects)}
-            </div>
-          )}
         </>
       ) : (
         <div className="display-fallback-player__empty">
@@ -1236,14 +1230,12 @@ export function DisplayPage() {
           event: playerEvent,
           availableChoiceIds,
           selectedChoiceId: pendingTurnChoices[player.id],
-          result: lastTurnGroupResults.find((result) => result.playerId === player.id),
         };
       }),
     [
       activeTurnPlayers,
       eventAvailableIds,
       eventPlayerId,
-      lastTurnGroupResults,
       pendingTurnChoices,
       showEvent,
       state.activeTurnEvents,
@@ -1862,8 +1854,9 @@ export function DisplayPage() {
               </div>
             ) : null}
 
-            {/* Show effects after choice */}
-            {!isGroupResultOverlay && choiceResult && effectBadges(choiceResult.effects).length > 0 && (
+            {/* Show effects after choice — but not on the selection screen
+                itself; the stat changes appear on the next (comparison) screen. */}
+            {!isGroupResultOverlay && !hasDisplayFallbackControls && choiceResult && effectBadges(choiceResult.effects).length > 0 && (
               <div className="event-effects">
                 {effectBadges(choiceResult.effects)}
               </div>
