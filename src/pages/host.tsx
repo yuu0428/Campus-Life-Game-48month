@@ -5,11 +5,18 @@ import {
   choosePrimaryHostUrl,
   colorForPlayer,
   getRoundInfo,
+  EXPERIENCE_LABELS,
+  RESOURCE_LABELS,
   type ClientMessage,
+  type ExperienceKey,
   type Faculty,
   type GameState,
   type HostManagedPlayer,
+  type Player,
+  type ResourceKey,
   type ServerMessage,
+  type SpecialFlags,
+  type StatEffects,
   type TurnMode,
   defaultGameState,
   wsUrlFromInput,
@@ -29,6 +36,66 @@ const HOST_JOURNEY_STAGES = [
   { year: 3, label: "挑戦", note: "専門・選択" },
   { year: 4, label: "卒業", note: "進路・締切" },
 ];
+
+type FacilitatorChip = { label: string; tone: "good" | "warn" | "info" };
+
+// 司会者が一目で話のネタにできる、注目すべきフラグをチップ化する。
+function facilitatorFlagChips(flags: SpecialFlags): FacilitatorChip[] {
+  const chips: FacilitatorChip[] = [];
+  if (flags.has_partner) chips.push({ label: "💗 恋人あり", tone: "good" });
+  if (flags.breakup) chips.push({ label: "💔 失恋", tone: "warn" });
+  if (flags.cheating) chips.push({ label: "💞 浮気中", tone: "warn" });
+  if (flags.living_alone) chips.push({ label: "🏠 一人暮らし", tone: "info" });
+  if (flags.studying_abroad) chips.push({ label: "✈️ 留学中", tone: "info" });
+  if (flags.on_leave) chips.push({ label: "🛌 休学中", tone: "warn" });
+  if (flags.in_seminar) chips.push({ label: "🔬 ゼミ所属", tone: "info" });
+  if (flags.teaching_cert) chips.push({ label: "🎓 教職課程", tone: "info" });
+  if (flags.job_offer) chips.push({ label: "✅ 内定", tone: "good" });
+  if (flags.grad_admitted) chips.push({ label: "✅ 院進学", tone: "good" });
+  if (flags.startup_traction) chips.push({ label: "🚀 起業好調", tone: "good" });
+  if (flags.job_hunt_failed) chips.push({ label: "⚠️ 就活難航", tone: "warn" });
+  if (flags.grad_exam_failed) chips.push({ label: "⚠️ 院試失敗", tone: "warn" });
+  if (flags.startup_failed || flags.startup_closed) chips.push({ label: "⚠️ 起業失敗", tone: "warn" });
+  if (flags.career_failed) chips.push({ label: "⚠️ 進路失敗", tone: "warn" });
+  return chips;
+}
+
+// 危機的なリソースを強調（「お金なくて…」のような進行ネタ用）。
+function facilitatorCriticalChips(player: Player): string[] {
+  const c: string[] = [];
+  if (player.resources.money <= 0) c.push("💸 お金ピンチ");
+  if (player.resources.health <= 3) c.push("🩹 体力ピンチ");
+  if (player.resources.time <= 1) c.push("⏳ 時間が残りわずか");
+  return c;
+}
+
+// 直前のターンで変動したステータスを +/- 付きで表示する。
+function HostStatDeltas({ effects }: { effects: StatEffects }) {
+  const entries = Object.entries(effects).filter(
+    ([, value]) => typeof value === "number" && value !== 0,
+  ) as [string, number][];
+  if (entries.length === 0) return null;
+  return (
+    <div className="host-monitor__deltas">
+      <span className="host-monitor__deltas-label">直前の変化</span>
+      {entries.map(([key, value]) => {
+        const label =
+          RESOURCE_LABELS[key as ResourceKey] ??
+          EXPERIENCE_LABELS[key as ExperienceKey] ??
+          key;
+        const up = value > 0;
+        return (
+          <span
+            key={key}
+            className={`host-monitor__delta ${up ? "host-monitor__delta--up" : "host-monitor__delta--down"}`}
+          >
+            {label} {up ? "+" : ""}{value}
+          </span>
+        );
+      })}
+    </div>
+  );
+}
 
 function formatTurnGroupLabel(players: { name: string }[]) {
   if (players.length === 0) return "待機中";
@@ -165,6 +232,17 @@ function App() {
   const pendingTurnChoices = state.pendingTurnChoices ?? {};
   const turnMode = state.turnMode ?? "pair";
   const onlinePlayerCount = state.players.filter((player) => player.online).length;
+  // 直前のターンで動いた各プレイヤーのステータス変動（司会者モニター用）。
+  const lastEffectsByPlayer = useMemo(() => {
+    const map = new Map<string, StatEffects>();
+    const results = state.lastTurnGroupResults?.length
+      ? state.lastTurnGroupResults
+      : state.lastChoiceResult
+        ? [state.lastChoiceResult]
+        : [];
+    for (const result of results) map.set(result.playerId, result.effects);
+    return map;
+  }, [state.lastTurnGroupResults, state.lastChoiceResult]);
   const boardDisplayReady =
     state.mode !== "board" ||
     (state.startedAt !== null && state.displayStartedAt === state.startedAt);
@@ -586,6 +664,76 @@ function App() {
                 選択済み: <strong>{activeSubmittedPlayers.map((player) => player.name).join(" / ")}</strong>
               </span>
             )}
+          </div>
+        </section>
+      )}
+
+      {/* ── 司会者モニター（全プレイヤーの状態・変化） ───────────────── */}
+      {isInGame && state.players.length > 0 && (
+        <section className="panel">
+          <div className="host-ops-section-header">
+            <h2>司会者モニター（全員の状態）</h2>
+            <span style={{ fontSize: 12, color: "var(--text-secondary)" }}>
+              進行のネタ・声かけに使えます
+            </span>
+          </div>
+          <div className="players host-monitor">
+            {state.players.map((player, index) => {
+              const critical = facilitatorCriticalChips(player);
+              const flagChips = facilitatorFlagChips(player.flags);
+              const delta = lastEffectsByPlayer.get(player.id);
+              return (
+                <div
+                  key={player.id}
+                  className={`player-card host-monitor__card ${critical.length > 0 ? "host-monitor__card--alert" : ""} ${player.online ? "" : "host-monitor__card--offline"}`}
+                >
+                  <div className="player-card__header">
+                    <div className="player-name">
+                      <span
+                        className="player-color-dot"
+                        style={{ background: colorForPlayer(index) }}
+                      />
+                      {player.name}
+                    </div>
+                    {!player.online && (
+                      <span style={{ fontSize: 11, color: "var(--text-secondary)" }}>offline</span>
+                    )}
+                  </div>
+                  <div className="player-stats">
+                    <span>📚 {player.resources.credits}単位</span>
+                    <span>💰 {player.resources.money}</span>
+                    <span>⏰ {player.resources.time}</span>
+                    <span>❤️ {player.resources.health}</span>
+                    <span>🧠 {player.experience.intellect}</span>
+                    <span>🤝 {player.experience.connections}</span>
+                    <span>💪 {player.experience.work_tolerance}</span>
+                    <span>💕 {player.experience.romance_exp}</span>
+                  </div>
+                  {critical.length > 0 && (
+                    <div className="host-monitor__chips">
+                      {critical.map((label) => (
+                        <span key={label} className="host-monitor__chip host-monitor__chip--alert">
+                          {label}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                  {flagChips.length > 0 && (
+                    <div className="host-monitor__chips">
+                      {flagChips.map((chip) => (
+                        <span
+                          key={chip.label}
+                          className={`host-monitor__chip host-monitor__chip--${chip.tone}`}
+                        >
+                          {chip.label}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                  {delta && <HostStatDeltas effects={delta} />}
+                </div>
+              );
+            })}
           </div>
         </section>
       )}
