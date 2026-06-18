@@ -14,6 +14,10 @@
  */
 
 import { spawn } from "node:child_process";
+import https from "node:https";
+import os from "node:os";
+import { Resolver } from "node:dns";
+import { promisify } from "node:util";
 
 // ─── CLI 引数（codex 流の構造化パース＋バリデーション） ─────────────
 function parseArgs(argv) {
@@ -137,6 +141,85 @@ async function notifyServer(url, retries = 20) {
   return false;
 }
 
+// 同じWiFi内なら確実に繋がるLAN URL（DNS不要・即時）。
+function getLanUrl() {
+  for (const addrs of Object.values(os.networkInterfaces())) {
+    for (const addr of addrs ?? []) {
+      if (addr.family === "IPv4" && !addr.internal) {
+        return `http://${addr.address}:${PORT}`;
+      }
+    }
+  }
+  return null;
+}
+
+// 公開DNS（1.1.1.1 / 8.8.8.8）で名前解決する。macOS のリゾルバキャッシュ
+// (mDNSResponder) に毒された結果に左右されないよう、システムリゾルバは使わない。
+async function resolveViaPublicDns(host) {
+  const resolver = new Resolver();
+  resolver.setServers(["1.1.1.1", "8.8.8.8"]);
+  const resolve4 = promisify(resolver.resolve4.bind(resolver));
+  const ips = await resolve4(host);
+  return ips[0];
+}
+
+// 解決済みIPへ直接HTTPSして、トンネル+オリジンが本当に応答するか確認する。
+function probeViaIp(url, ip) {
+  return new Promise((resolve) => {
+    const target = new URL(url);
+    const req = https.request(
+      {
+        host: ip,
+        servername: target.hostname, // TLS SNI
+        path: "/",
+        method: "GET",
+        headers: { host: target.hostname, "user-agent": "campus-life-game-readiness" },
+        timeout: 8_000,
+      },
+      (res) => {
+        res.resume();
+        resolve(res.statusCode ?? 0);
+      },
+    );
+    req.on("error", () => resolve(null));
+    req.on("timeout", () => {
+      req.destroy();
+      resolve(null);
+    });
+    req.end();
+  });
+}
+
+// ─── 公開URLが実際に到達可能になるまで待つ（DNS伝播待ちのレース対策） ──
+// cloudflared がURLを出力した直後はまだ trycloudflare のDNSが伝播しておらず、
+// すぐ開くと「サイトにアクセスできません」になり、しかもその失敗がOSのDNSキャッシュに
+// 残って開けないままになる。公開DNS経由で「世界から本当に開ける」状態を確認してから
+// 「起動完了」を表示することで、早すぎて開けない問題を根本的に防ぐ。
+async function waitForPublicUrl(url, { timeoutMs = 120_000, intervalMs = 2_000 } = {}) {
+  const host = new URL(url).hostname;
+  const startedAt = Date.now();
+  let attempt = 0;
+  while (Date.now() - startedAt < timeoutMs) {
+    attempt += 1;
+    try {
+      const ip = await resolveViaPublicDns(host);
+      const status = await probeViaIp(url, ip);
+      // 5xx (521/530 等＝DNSは引けてもトンネル/オリジン未確立) はリトライ継続。
+      if (status !== null && status < 500) {
+        process.stdout.write("\n");
+        return true;
+      }
+    } catch {
+      // 名前解決不可 / 接続不可 → リトライ
+    }
+    const elapsed = Math.round((Date.now() - startedAt) / 1000);
+    process.stdout.write(`\r⏳ 公開URLの有効化を待っています... ${elapsed}s (試行 ${attempt})   `);
+    await new Promise((r) => setTimeout(r, intervalMs));
+  }
+  process.stdout.write("\n");
+  return false;
+}
+
 // ─── メイン ───────────────────────────────────────────────────────
 async function main() {
   if (!USE_TUNNEL) {
@@ -188,6 +271,16 @@ async function main() {
       console.warn("⚠️  サーバーへのURL通知に失敗しましたが、起動は続行します。");
     }
 
+    // 4. 公開URLが外部から開ける状態になるまで待つ（DNS伝播待ち）
+    console.log("\n🔎 公開URLが外部から開けるか確認しています（DNS伝播待ち / 最大2分）...");
+    const reachable = await waitForPublicUrl(url);
+    if (reachable) {
+      console.log("✅ 公開URLが有効になりました。今すぐ開けます。");
+    } else {
+      console.warn("⚠️  到達確認がタイムアウトしました。あと数十秒待ってから開いてみてください。");
+    }
+
+    const lanUrl = getLanUrl();
     printBox([
       `🎮  ${GAME_NAME} — 起動完了！`,
       ``,
@@ -198,9 +291,19 @@ async function main() {
       `    ${url}`,
       `📺  ディスプレイ画面:`,
       `    ${url}/display.html?host=${encodeURIComponent(url)}`,
+      ...(lanUrl
+        ? [
+            ``,
+            `✅  同じWiFiなら確実に繋がる（DNS不要・即時）:`,
+            `    ホスト:       ${lanUrl}`,
+            `    ディスプレイ: ${lanUrl}/display.html?host=${encodeURIComponent(lanUrl)}`,
+            `    参加者:       ${lanUrl}/controller.html?host=${encodeURIComponent(lanUrl)}`,
+          ]
+        : []),
       ``,
       `💡  参加者向けURLをQRコードに変換してプロジェクターに映すか、`,
       `    参加者に直接送ってください。`,
+      `    開けない時は同じWiFiのLAN URLを使うと確実です。`,
       ``,
       `⚠️   このターミナルを閉じるとゲームが終了します。`,
     ]);
