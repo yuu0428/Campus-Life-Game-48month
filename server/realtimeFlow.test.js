@@ -79,6 +79,7 @@ async function connectClient(t, port, joinPayload) {
   return {
     socket,
     clientId: welcome.clientId,
+    passkey: welcome.passkey,
     messages,
     send(payload) {
       socket.send(JSON.stringify(payload));
@@ -143,6 +144,62 @@ async function startBoardGame(host, { displayStart = true } = {}) {
       && message.state.displayStartedAt === message.state.startedAt,
   );
 }
+
+test("board game does not start when every registered player is offline", async (t) => {
+  const { port } = await startServer(t);
+  const host = await connectClient(t, port, { role: "host", name: "Host" });
+  const player = await connectClient(t, port, { role: "controller", name: "Aoi" });
+
+  player.socket.close();
+  await once(player.socket, "close");
+  await delay(100);
+
+  host.messages.length = 0;
+  host.send({ type: "start_game" });
+  await delay(100);
+  host.send({ type: "request_state" });
+
+  const stateMessage = await host.waitFor(
+    (message) => message.type === "state" && message.state.phase === "lobby",
+  );
+  assert.equal(stateMessage.state.currentRound, 1);
+  assert.equal(stateMessage.state.startedAt, null);
+});
+
+test("board game waits on the current month when everyone disconnects and resumes on reconnect", async (t) => {
+  const { port } = await startServer(t);
+  const host = await connectClient(t, port, { role: "host", name: "Host" });
+  const player = await connectClient(t, port, { role: "controller", name: "Aoi" });
+
+  await startBoardGame(host, { displayStart: false });
+
+  player.socket.close();
+  await once(player.socket, "close");
+  await delay(100);
+  host.messages.length = 0;
+  host.send({ type: "request_state" });
+
+  const waitingState = await host.waitFor(
+    (message) => message.type === "state"
+      && message.state.phase === "rolling"
+      && message.state.activeTurnPlayerIds.length === 0,
+  );
+  assert.equal(waitingState.state.currentRound, 1);
+
+  const restored = await connectClient(t, port, {
+    role: "controller",
+    name: "Aoi",
+    clientId: player.clientId,
+    passkey: player.passkey,
+  });
+  const resumedState = await restored.waitFor(
+    (message) => message.type === "state"
+      && message.state.phase === "rolling"
+      && message.state.currentRound === 1
+      && message.state.activeTurnPlayerIds.includes(player.clientId),
+  );
+  assert.deepEqual(resumedState.state.activeTurnPlayerIds, [player.clientId]);
+});
 
 test("controller joining during life-map play is added to the current season event", async (t) => {
   const { port } = await startServer(t);

@@ -495,7 +495,16 @@ function addPlayerToActiveGame(clientId) {
     state.turnOrder.push(clientId);
   }
 
-  if (state.mode !== "life_map") return;
+  if (state.mode !== "life_map") {
+    if (
+      state.phase === "rolling"
+      && state.activeTurnPlayerIds.length === 0
+      && !state.completedTurns.includes(clientId)
+    ) {
+      prepareNextBoardTurnGroup();
+    }
+    return;
+  }
 
   if (!state.lifePlayers.some((lifePlayer) => lifePlayer.id === clientId)) {
     state.lifePlayers.push(createTimelinePlayer(player.id, player.name));
@@ -1411,8 +1420,16 @@ function prepareNextBoardTurnGroup() {
   state.lastRoll = null;
   state.turnStartedAt = null;
 
+  const remainingIds = state.turnOrder
+    .filter((id) => !state.completedTurns.includes(id));
   const nextIds = selectNextBoardTurnGroup();
   if (nextIds.length === 0) {
+    if (remainingIds.length > 0) {
+      state.phase = "rolling";
+      state.activeTurnPlayerIds = [];
+      broadcastState();
+      return;
+    }
     endRound();
     return;
   }
@@ -2267,7 +2284,7 @@ wss.on("connection", (socket) => {
     // ─── start_game ────────────────────────────────────────────
     if (payload.type === "start_game") {
       if (client.role !== "host" || client.id !== hostId) return;
-      if (state.players.length === 0) return;
+      if (!state.players.some((player) => player.online)) return;
 
       // Initialize game state
       startSession("board");

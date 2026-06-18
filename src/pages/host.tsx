@@ -162,6 +162,7 @@ function App() {
 
   const pendingTurnChoices = state.pendingTurnChoices ?? {};
   const turnMode = state.turnMode ?? "pair";
+  const onlinePlayerCount = state.players.filter((player) => player.online).length;
   const boardDisplayReady =
     state.mode !== "board" ||
     (state.startedAt !== null && state.displayStartedAt === state.startedAt);
@@ -983,10 +984,10 @@ function App() {
           <div className="actions">
             <button
               onClick={startGame}
-              disabled={state.players.length < 1}
+              disabled={onlinePlayerCount < 1}
             >
               ゲームを開始
-              {state.players.length < 1 && " (参加者が必要)"}
+              {onlinePlayerCount < 1 && " (オンライン参加者が必要)"}
             </button>
             <button className="ghost" onClick={openDisplay}>
               ディスプレイを開く
