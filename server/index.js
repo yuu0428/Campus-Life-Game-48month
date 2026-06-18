@@ -2606,16 +2606,10 @@ wss.on("connection", (socket) => {
 
     if (client.role === "host" && client.id === hostId) {
       hostId = null;
-      if (state.phase !== "result") {
-        state = defaultGameState();
-        playerAuth.clear();
-        sessionId = null;
-        sessionStartedAtIso = null;
-        broadcast({
-          type: "system",
-          message: "ホストが切断されました。ロビーに戻ります。",
-        });
-      }
+      broadcast({
+        type: "system",
+        message: "ホストとの接続が切れました。ゲーム状態を保持して再接続を待ちます。",
+      });
     }
 
     broadcastState();

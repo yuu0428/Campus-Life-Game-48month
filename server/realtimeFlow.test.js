@@ -201,6 +201,44 @@ test("board game waits on the current month when everyone disconnects and resume
   assert.deepEqual(resumedState.state.activeTurnPlayerIds, [player.clientId]);
 });
 
+test("host reconnect preserves the active board game state", async (t) => {
+  const { port } = await startServer(t);
+  const host = await connectClient(t, port, { role: "host", name: "Host" });
+  const player = await connectClient(t, port, { role: "controller", name: "Aoi" });
+
+  const beforeDisconnect = await startBoardGame(host);
+  assert.equal(beforeDisconnect.state.currentRound, 1);
+  assert.ok(beforeDisconnect.state.activeTurnPlayerIds.includes(player.clientId));
+
+  host.socket.close();
+  await once(host.socket, "close");
+  await delay(100);
+
+  const replacementHost = await connectClient(t, port, { role: "host", name: "Host" });
+  const restoredState = await replacementHost.waitFor(
+    (message) => message.type === "state"
+      && message.state.phase === beforeDisconnect.state.phase
+      && message.state.currentRound === beforeDisconnect.state.currentRound,
+  );
+
+  assert.equal(restoredState.state.startedAt, beforeDisconnect.state.startedAt);
+  assert.equal(restoredState.state.displayStartedAt, beforeDisconnect.state.displayStartedAt);
+  assert.deepEqual(restoredState.state.activeTurnPlayerIds, beforeDisconnect.state.activeTurnPlayerIds);
+  assert.deepEqual(
+    restoredState.state.players.map((entry) => ({ id: entry.id, name: entry.name })),
+    beforeDisconnect.state.players.map((entry) => ({ id: entry.id, name: entry.name })),
+  );
+
+  replacementHost.send({ type: "host_player_roll", playerId: player.clientId });
+  const choosing = await replacementHost.waitFor(
+    (message) => message.type === "state"
+      && message.state.phase === "choosing"
+      && message.state.currentRound === 1
+      && Boolean(message.state.availableChoiceIdsByPlayer[player.clientId]?.length),
+  );
+  assert.ok(choosing.state.availableChoiceIdsByPlayer[player.clientId].length > 0);
+});
+
 test("controller joining during life-map play is added to the current season event", async (t) => {
   const { port } = await startServer(t);
   const host = await connectClient(t, port, { role: "host", name: "Host" });

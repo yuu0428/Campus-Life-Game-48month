@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { QRCodeCanvas } from "qrcode.react";
 import "../App.css";
 import {
@@ -99,6 +99,8 @@ function App() {
   const [now, setNow] = useState(Date.now());
   const [isConnecting, setIsConnecting] = useState(false);
   const wsRef = useRef<WebSocket | null>(null);
+  const reconnectTimerRef = useRef<number | null>(null);
+  const shouldReconnectRef = useRef(true);
 
   const primaryHostUrl = useMemo(
     () => choosePrimaryHostUrl(hostUrls),
@@ -193,7 +195,12 @@ function App() {
   );
 
   useEffect(() => {
+    shouldReconnectRef.current = true;
     return () => {
+      shouldReconnectRef.current = false;
+      if (reconnectTimerRef.current !== null) {
+        window.clearTimeout(reconnectTimerRef.current);
+      }
       wsRef.current?.close();
     };
   }, []);
@@ -209,9 +216,16 @@ function App() {
     setFallbackPlayerId(fallbackCandidates[0]?.id ?? "");
   }, [activeTurnPlayers, fallbackPlayerId, state.mode, state.players]);
 
-  const connectHost = () => {
-    if (wsRef.current && wsRef.current.readyState !== WebSocket.CLOSED) return;
-    if (isConnecting || clientId) return;
+  const connectHost = useCallback(() => {
+    if (
+      wsRef.current
+      && (
+        wsRef.current.readyState === WebSocket.OPEN
+        || wsRef.current.readyState === WebSocket.CONNECTING
+      )
+    ) {
+      return;
+    }
     if (!name.trim()) {
       setStatus("名前を入力してください");
       return;
@@ -231,6 +245,10 @@ function App() {
     wsRef.current = socket;
 
     socket.onopen = () => {
+      if (reconnectTimerRef.current !== null) {
+        window.clearTimeout(reconnectTimerRef.current);
+        reconnectTimerRef.current = null;
+      }
       const payload: ClientMessage = {
         type: "join",
         name: name.trim(),
@@ -260,19 +278,19 @@ function App() {
     };
 
     socket.onclose = () => {
-      setStatus("切断されました");
+      wsRef.current = null;
+      setStatus("再接続中...");
       setClientId(null);
-      setHostUrls([]);
-      setState(defaultGameState);
-      setManagedPlayers([]);
       setIsConnecting(false);
+      if (!shouldReconnectRef.current) return;
+      reconnectTimerRef.current = window.setTimeout(connectHost, 1500);
     };
 
     socket.onerror = () => {
       setStatus("接続に失敗しました");
       setIsConnecting(false);
     };
-  };
+  }, [hostUrlInput, name]);
 
   const sendMessage = (payload: ClientMessage) => {
     if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) return;
