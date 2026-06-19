@@ -90,6 +90,9 @@ const TURN_GROUP_SIZE = 2;
 const TURN_MODES = new Set(["pair", "all"]);
 const TURN_GROUP_RESULT_MS = Number(process.env.TURN_GROUP_RESULT_MS ?? 3000);
 const SEMESTER_CREDIT_BONUS = 10;
+// Year 4 only: pay the final-semester credit bonus before the graduation
+// judgment (event 47, round 47) instead of at the very end (round 48).
+const FINAL_SEMESTER_BONUS_ROUND = 46;
 const CREDIT_AUDIT_ROUNDS = new Set([6, 12, 18, 24, 30, 36, 42, 48]);
 const CREDIT_AUDIT_GRACE_GAP = 3;
 const CREDIT_AUDIT_MAX_BONUS = 6;
@@ -2177,7 +2180,14 @@ function endRound() {
   const finishedRound = state.currentRound;
   const roundInfo = getRoundInfo(finishedRound);
 
-  if (finishedRound % 6 === 0) {
+  // Semester credit bonus. The final-semester bonus (month 48) is paid at
+  // month 46 instead — one event before the graduation judgment (event 47) —
+  // so year-4 players can actually choose to graduate at 卒業判定 rather than
+  // only clearing the 124-credit bar afterwards via the year-end audit.
+  const isFinalSemesterBonusRound = finishedRound === FINAL_SEMESTER_BONUS_ROUND;
+  const isRegularSemesterBonusRound =
+    finishedRound % 6 === 0 && finishedRound !== BOARD_FINAL_ROUND;
+  if (isFinalSemesterBonusRound || isRegularSemesterBonusRound) {
     for (const player of state.players) {
       player.resources.credits = clampResource(
         "credits",
@@ -2186,7 +2196,9 @@ function endRound() {
     }
     broadcast({
       type: "system",
-      message: `学期末の履修整理で全員に${SEMESTER_CREDIT_BONUS}単位が入りました。`,
+      message: isFinalSemesterBonusRound
+        ? `卒業に向けた履修整理で全員に${SEMESTER_CREDIT_BONUS}単位が入りました。`
+        : `学期末の履修整理で全員に${SEMESTER_CREDIT_BONUS}単位が入りました。`,
     });
   }
 
