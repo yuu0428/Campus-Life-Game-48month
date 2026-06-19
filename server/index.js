@@ -100,8 +100,8 @@ const FINAL_CREDIT_AUDIT_CHANCE = 0.35;
 const CREDIT_RECOVERY_EVENT_MIN_ROUND = 14;
 const CREDIT_RECOVERY_EVENT_GAP = 18;
 // Natural (non-cheating) breakup triggers.
-const BREAKUP_MONEY_STREAK = 3;   // money < 0 for this many consecutive rounds
-const BREAKUP_CREDIT_GAP = 26;    // credits this far behind the expected pace
+const BREAKUP_MONEY_STREAK = 5;   // money < 0 for this many consecutive rounds
+const BREAKUP_CREDIT_GAP = 42;    // credits this far behind the expected pace
 const YEAR_RECAP_ROUNDS = new Set([12, 24, 36]);
 const RECOVERY_COOLDOWN_ROUNDS = 3;
 const RECOVERY_MAX_PER_STAT_PER_YEAR = 1;
