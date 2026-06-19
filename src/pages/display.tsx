@@ -521,7 +521,7 @@ function TurnGroupResultPanel({ results }: { results: ChoiceResult[] }) {
   return (
     <div className="turn-result-comparison">
       <div className="turn-result-comparison__title">
-        {results.length > 1 ? "ふたりの選択" : "選択結果"}
+        {results.length > 1 ? `みんなの選択（${results.length}人）` : "選択結果"}
       </div>
       <div className="turn-result-comparison__grid">
         {results.map((result) => (
@@ -1836,7 +1836,7 @@ export function DisplayPage() {
               <div className="event-card__category">{overlayEvent.category}</div>
             )}
             <div className="event-card__title">
-              {isGroupResultOverlay ? "ふたりの選択が出そろった" : overlayEvent?.title}
+              {isGroupResultOverlay ? "みんなの選択が出そろった" : overlayEvent?.title}
             </div>
             <div className="event-card__description">
               {isGroupResultOverlay

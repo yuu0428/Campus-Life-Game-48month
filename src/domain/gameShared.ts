@@ -333,7 +333,7 @@ export function getRoundInfo(round: number): RoundInfo {
 
 // ─── Game State ───────────────────────────────────────────────────
 export type GameMode = "board" | "life_map";
-export type TurnMode = "pair" | "all";
+export type TurnMode = "pair" | "quad" | "all";
 
 export type GamePhase = "lobby" | "rolling" | "choosing" | "animating" | "year_recap" | "revealed" | "result";
 

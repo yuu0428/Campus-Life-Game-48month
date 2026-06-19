@@ -86,8 +86,10 @@ const EXPERIENCE_RANGES = {
 };
 
 const BOARD_FINAL_ROUND = 48;
-const TURN_GROUP_SIZE = 2;
-const TURN_MODES = new Set(["pair", "all"]);
+// Number of players that take their turn together per group, by turn mode.
+// "all" ignores this and activates everyone at once.
+const TURN_GROUP_SIZES = { pair: 2, quad: 4 };
+const TURN_MODES = new Set(["pair", "quad", "all"]);
 const TURN_GROUP_RESULT_MS = Number(process.env.TURN_GROUP_RESULT_MS ?? 3000);
 const SEMESTER_CREDIT_BONUS = 10;
 // Year 4 only: pay the final-semester credit bonus before the graduation
@@ -1456,7 +1458,7 @@ function selectNextBoardTurnGroup() {
     .filter((id) => getPlayerById(id)?.online);
   const nextIds = state.turnMode === "all"
     ? remainingIds
-    : remainingIds.slice(0, TURN_GROUP_SIZE);
+    : remainingIds.slice(0, TURN_GROUP_SIZES[state.turnMode] ?? TURN_GROUP_SIZES.pair);
 
   state.activeTurnPlayerIds = nextIds;
   state.turnIndex = nextIds.length > 0 ? Math.max(0, state.turnOrder.indexOf(nextIds[0])) : 0;

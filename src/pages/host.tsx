@@ -102,12 +102,14 @@ function HostStatDeltas({ effects }: { effects: StatEffects }) {
 function formatTurnGroupLabel(players: { name: string }[]) {
   if (players.length === 0) return "待機中";
   if (players.length === 1) return `${players[0].name}さんのターン`;
-  if (players.length >= 3) return `全員のターン（${players.map((player) => player.name).join(" / ")}）`;
+  if (players.length >= 3) return `${players.map((player) => player.name).join(" / ")} のターン`;
   return `${players.map((player) => `${player.name}さん`).join(" と ")}のターン`;
 }
 
 function formatTurnMode(mode: TurnMode | undefined) {
-  return mode === "all" ? "全員一斉" : "2人ずつ";
+  if (mode === "all") return "全員一斉";
+  if (mode === "quad") return "4人ずつ";
+  return "2人ずつ";
 }
 
 function HostJourneyStrip({
@@ -1071,6 +1073,14 @@ function App() {
             >
               <strong>2人ずつ</strong>
               <span>対比で見せる</span>
+            </button>
+            <button
+              type="button"
+              className={turnMode === "quad" ? "host-turn-mode-option host-turn-mode-option--active" : "host-turn-mode-option"}
+              onClick={() => setTurnMode("quad")}
+            >
+              <strong>4人ずつ</strong>
+              <span>4人を並べる</span>
             </button>
             <button
               type="button"
