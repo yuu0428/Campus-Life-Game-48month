@@ -789,8 +789,8 @@ function checkThresholdEvents(player) {
   else if (res.money <= -3) {
     result = THRESHOLD_EVENTS["金欠"];
   }
-  // 4. has_license AND random < 4% -> bike light stop
-  else if (player.flags.has_license && Math.random() < BIKE_LIGHT_STOP_CHANCE) {
+  // 4. no license (bicycle rider) AND random < 4% -> bike light stop
+  else if (!player.flags.has_license && Math.random() < BIKE_LIGHT_STOP_CHANCE) {
     result = THRESHOLD_EVENTS["無灯火運転"];
   }
 

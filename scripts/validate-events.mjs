@@ -87,7 +87,7 @@ const SEMANTIC_PREREQUISITE_RULES = [
   },
   {
     flag: "has_license",
-    regex: /ドライブ|車で|無灯火運転|免許を活か/,
+    regex: /ドライブ|車で|免許を活か/,
   },
   {
     flag: "living_alone",

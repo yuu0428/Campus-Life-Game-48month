@@ -201,12 +201,12 @@
   },
   "無灯火運転": {
     "id": "無灯火運転",
-    "title": "無灯火運転で捕まる",
-    "description": "原付の無灯火で警察に止められた。",
+    "title": "自転車の無灯火で捕まる",
+    "description": "自転車の無灯火で警察に止められた。",
     "category": "特殊",
     "condition": {
       "requiredFlags": {
-        "has_license": true
+        "has_license": false
       }
     },
     "choices": [
@@ -215,10 +215,10 @@
         "label": "反省する",
         "effects": {
           "money": -1,
-          "work_tolerance": 1,
-          "action_power": 1,
-          "romance_exp": -1
-        }
+          "time": -1,
+          "action_power": -1
+        },
+        "preserveEffects": true
       }
     ]
   }
