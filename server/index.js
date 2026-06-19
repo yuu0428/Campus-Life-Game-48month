@@ -985,6 +985,13 @@ function triggerNaturalBreakup(player, reason) {
   player.flags.breakup = true;
   if (!player.flagHistory.includes("breakup")) player.flagHistory.push("breakup");
   broadcast({ type: "system", message: `💔 ${player.name} は${reason}、恋人と別れてしまいました…` });
+  broadcast({
+    type: "relationship_news",
+    playerName: player.name,
+    icon: "💔",
+    text: `${reason}、恋人と別れてしまった…`,
+    tone: "sad",
+  });
   return true;
 }
 

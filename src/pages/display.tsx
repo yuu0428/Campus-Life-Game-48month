@@ -1153,6 +1153,12 @@ export function DisplayPage() {
   // Round-end banner
   const [roundEndInfo, setRoundEndInfo] = useState<RoundInfo | null>(null);
 
+  // Relationship news banner (e.g. natural breakup)
+  const [relationshipNews, setRelationshipNews] = useState<
+    { playerName: string; icon: string; text: string; tone: string } | null
+  >(null);
+  const relationshipNewsTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   // Game result
   const [gameResults, setGameResults] = useState<DisplayGameResults | null>(null);
   const [showResultContent, setShowResultContent] = useState(false);
@@ -1441,6 +1447,21 @@ export function DisplayPage() {
         case "system":
           setStatus(message.message);
           break;
+
+        case "relationship_news":
+          if (relationshipNewsTimerRef.current) {
+            clearTimeout(relationshipNewsTimerRef.current);
+          }
+          setRelationshipNews({
+            playerName: message.playerName,
+            icon: message.icon,
+            text: message.text,
+            tone: message.tone,
+          });
+          relationshipNewsTimerRef.current = setTimeout(() => {
+            setRelationshipNews(null);
+          }, 5200);
+          break;
       }
     };
 
@@ -1450,6 +1471,9 @@ export function DisplayPage() {
     return () => {
       if (eventOverlayTimerRef.current) {
         clearTimeout(eventOverlayTimerRef.current);
+      }
+      if (relationshipNewsTimerRef.current) {
+        clearTimeout(relationshipNewsTimerRef.current);
       }
       socket.close();
     };
@@ -1924,6 +1948,19 @@ export function DisplayPage() {
             <div style={{ textAlign: "center", marginTop: 12, fontSize: 13, color: "var(--text-secondary)" }}>
               ホストが次のイベントへ進めます
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Relationship News Banner ──────────────────────────────── */}
+      {relationshipNews && (
+        <div className="relationship-news">
+          <div className={`relationship-news__card relationship-news__card--${relationshipNews.tone}`}>
+            <span className="relationship-news__icon">{relationshipNews.icon}</span>
+            <span className="relationship-news__body">
+              <span className="relationship-news__player">{relationshipNews.playerName}</span>
+              <span className="relationship-news__text">{relationshipNews.text}</span>
+            </span>
           </div>
         </div>
       )}

@@ -582,6 +582,14 @@ export type ServerMessage =
       results: ChoiceResult[];
     }
   | { type: "round_end"; round: number; roundInfo: RoundInfo }
+  | {
+      /** Relationship milestone announcement (e.g. natural breakup) shown as a banner */
+      type: "relationship_news";
+      playerName: string;
+      icon: string;
+      text: string;
+      tone: string;
+    }
   | { type: "player_removed"; playerId: string; playerName: string }
   | { type: "game_result"; results: PlayerResult[] };
 
