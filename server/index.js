@@ -1290,6 +1290,7 @@ function processTimelineChoice(player, choiceId, submittedBy = "controller") {
   const result = {
     playerId: player.id,
     playerName: player.name,
+    eventTitle: event.title,
     choiceId: choice.id,
     choiceLabel: choice.label,
     effects: visibleEffects,
@@ -1827,6 +1828,7 @@ function processYearAnchorChoice(player, event, choice, submittedBy) {
   const result = {
     playerId: player.id,
     playerName: player.name,
+    eventTitle: event.title,
     choiceId: choice.id,
     choiceLabel: choice.label,
     effects: {},
@@ -1960,6 +1962,7 @@ function processBoardGroupChoice(player, choiceId, submittedBy = "controller") {
   const result = {
     playerId: player.id,
     playerName: player.name,
+    eventTitle: event.title,
     choiceId: choice.id,
     choiceLabel: choice.label,
     effects: appliedEffects,

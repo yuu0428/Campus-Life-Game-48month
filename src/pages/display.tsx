@@ -527,6 +527,9 @@ function TurnGroupResultPanel({ results }: { results: ChoiceResult[] }) {
         {results.map((result) => (
           <div key={`${result.playerId}-${result.choiceId}`} className="turn-result-card">
             <div className="turn-result-card__player">{result.playerName}</div>
+            {result.eventTitle && (
+              <div className="turn-result-card__event">{result.eventTitle}</div>
+            )}
             <div className="turn-result-card__choice">{result.choiceLabel}</div>
             <RomanceMomentBadge result={result} />
             {effectBadges(result.effects).length > 0 && (
@@ -575,6 +578,9 @@ function DisplayFallbackChoicePanel({
       {event ? (
         <>
           <div className="display-fallback-player__event">{event.title}</div>
+          {event.description && (
+            <div className="display-fallback-player__event-desc">{event.description}</div>
+          )}
           <div className="display-fallback-choice-list">
             {event.choices.map((choice, choiceIndex) => {
               const isAvailable = availableChoiceIds.includes(choice.id);

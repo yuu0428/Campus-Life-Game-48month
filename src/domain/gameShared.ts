@@ -474,6 +474,7 @@ export interface GameState {
 export interface ChoiceResult {
   playerId: string;
   playerName: string;
+  eventTitle?: string;
   choiceId: string;
   choiceLabel: string;
   effects: StatEffects;
