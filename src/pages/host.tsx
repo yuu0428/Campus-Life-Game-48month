@@ -45,6 +45,8 @@ function facilitatorFlagChips(flags: SpecialFlags): FacilitatorChip[] {
   if (flags.has_partner) chips.push({ label: "💗 恋人あり", tone: "good" });
   if (flags.breakup) chips.push({ label: "💔 失恋", tone: "warn" });
   if (flags.cheating) chips.push({ label: "💞 浮気中", tone: "warn" });
+  const exCount = Number(flags.ex_partner_count ?? 0);
+  if (exCount > 0) chips.push({ label: `💔 元恋人 ${exCount}人`, tone: "info" });
   if (flags.living_alone) chips.push({ label: "🏠 一人暮らし", tone: "info" });
   if (flags.studying_abroad) chips.push({ label: "✈️ 留学中", tone: "info" });
   if (flags.on_leave) chips.push({ label: "🛌 休学中", tone: "warn" });

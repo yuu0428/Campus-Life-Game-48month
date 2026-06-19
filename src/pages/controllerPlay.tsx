@@ -616,6 +616,14 @@ export function StatsDashboard({ player }: { player: Player }) {
         label: player.flags.job_type,
       });
     }
+    const exCount = Number(player.flags.ex_partner_count ?? 0);
+    if (exCount > 0) {
+      result.push({
+        key: "ex_partner",
+        emoji: "\u{1F494}",
+        label: `元恋人 ${exCount}人`,
+      });
+    }
     return result;
   }, [player.flags]);
 
