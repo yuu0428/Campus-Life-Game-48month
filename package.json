@@ -12,8 +12,8 @@
     "simulate": "node scripts/simulate.mjs",
     "sim:random": "node scripts/random-playthrough.mjs",
     "board": "node scripts/start-board.mjs",
-    "game": "node scripts/start-game.mjs",
-    "game:tunnel": "node scripts/start-game.mjs --tunnel",
+    "game": "npm run build && node scripts/start-game.mjs",
+    "game:tunnel": "npm run build && node scripts/start-game.mjs --tunnel",
     "start": "node server/index.js",
     "preview": "vite preview"
   },
