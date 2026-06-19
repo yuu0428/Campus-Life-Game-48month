@@ -1456,9 +1456,17 @@ function selectNextBoardTurnGroup() {
   const remainingIds = state.turnOrder
     .filter((id) => !state.completedTurns.includes(id))
     .filter((id) => getPlayerById(id)?.online);
-  const nextIds = state.turnMode === "all"
-    ? remainingIds
-    : remainingIds.slice(0, TURN_GROUP_SIZES[state.turnMode] ?? TURN_GROUP_SIZES.pair);
+  let nextIds;
+  if (state.turnMode === "all") {
+    nextIds = remainingIds;
+  } else {
+    const size = TURN_GROUP_SIZES[state.turnMode] ?? TURN_GROUP_SIZES.pair;
+    // Avoid leaving a lone straggler: if taking a full group would leave
+    // exactly one player behind, take one fewer so the tail splits evenly
+    // (e.g. 17 players in groups of 4 → 4,4,4,3,2 instead of 4,4,4,4,1).
+    const groupSize = size >= 3 && remainingIds.length - size === 1 ? size - 1 : size;
+    nextIds = remainingIds.slice(0, groupSize);
+  }
 
   state.activeTurnPlayerIds = nextIds;
   state.turnIndex = nextIds.length > 0 ? Math.max(0, state.turnOrder.indexOf(nextIds[0])) : 0;
